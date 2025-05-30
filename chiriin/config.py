@@ -1,5 +1,6 @@
 import datetime
 import os
+from decimal import Decimal
 from glob import glob
 from typing import NamedTuple, Optional
 
@@ -24,8 +25,8 @@ FilePath = str
 class XY(NamedTuple):
     """2次元座標を格納するクラス"""
 
-    x: float
-    y: float
+    x: float | Decimal
+    y: float | Decimal
 
 
 class XYZ(NamedTuple):
