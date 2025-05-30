@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Iterable
 
 from chiriin.config import XY
+from chiriin.utils import dimensional_count
 
 
 def dms_to_degree(dms: float, digits: int = 9, decimal_obj: bool = False) -> float | Decimal:
@@ -24,16 +25,26 @@ def dms_to_degree(dms: float, digits: int = 9, decimal_obj: bool = False) -> flo
     ## Returns:
         float | Decimal:
             10進法経緯度
-    Example:
-        >>> dms_to_degree(140516.27814)
-        140.087855042
-        >>> dms_to_degree(36103600.00000)
-        36.103774792
     """
-    pass
+    try:
+        dms = float(dms)
+    except ValueError as err:
+        raise ValueError("dms must be a float or convertible to float.") from err
+    dms_txt = str(dms)
+    sep = "."
+    integer_part, decimal_part = dms_txt.split(sep)
+    micro_sec = float(f"0.{decimal_part}")
+    if len(integer_part) < 6 or 7 < len(integer_part):
+        raise ValueError(f"dms must have a 6- or 7-digit integer part. Arg: {dms}")
+    sec = Decimal(f"{(int(integer_part[-2:]) + micro_sec) / 3600}")
+    min_ = Decimal(f"{int(integer_part[-4:-2]) / 60}")
+    deg = Decimal(f"{float(int(integer_part[:-4]))}")
+    if decimal_obj:
+        return round(deg + min_ + sec, digits)
+    return float(round(deg + min_ + sec, digits))
 
 
-def degree_to_dms(degree: float, decimal_obj: bool = False, digits: int = 5) -> float | Decimal:
+def degree_to_dms(degree: float, digits: int = 5, decimal_obj: bool = False) -> float | Decimal:
     """
     ## Description:
         10進法経緯度を度分秒経緯度に変換する関数
@@ -47,13 +58,31 @@ def degree_to_dms(degree: float, decimal_obj: bool = False, digits: int = 5) -> 
     ## Returns:
         float | Decimal:
             度分秒経緯度
-    Example:
-        >>> degree_to_dms(140.08785504166664)
-        140516.2781
-        >>> degree_to_dms(36.103774791666666)
-        36103600.0000
     """
-    pass
+    try:
+        _degree = float(degree)
+    except ValueError as err:
+        # 10進法経緯度はfloatに変換可能な値である必要がある
+        raise ValueError("degree must be a float or convertible to float.") from err
+    if not (-180 <= _degree <= 180):
+        # 経度は-180から180の範囲である必要がある
+        raise ValueError(f"degree must be in the range of -180 to 180. Arg: {degree}")
+
+    deg = int(degree)
+    min_ = int((degree - deg) * 60)
+    _sec = str((degree - deg - min_ / 60) * 3600)
+    idx = _sec.find(".")
+    sec = int(_sec[:idx] if idx != -1 else _sec)
+    # マイクロ秒は小数点以下5桁までを想定
+    micro_sec = int(round(int(_sec[idx + 1 :][: digits + 1]), digits) * 0.1)
+    # 度分秒が10未満の場合は0を付与
+    deg = f"0{deg}" if deg < 10 else str(deg)
+    min_ = f"0{min_}" if min_ < 10 else str(min_)
+    sec = f"0{sec}" if sec < 10 else str(sec)
+    dms = float(f"{deg}{min_}{sec}.{micro_sec}")
+    if decimal_obj:
+        return Decimal(f"{dms:.{digits}f}")
+    return dms
 
 
 def _dms_to_degree_lonlat(lon: float, lat: float, digits: int = 9, decimal_obj: bool = False) -> XY:
@@ -78,11 +107,16 @@ def _dms_to_degree_lonlat(lon: float, lat: float, digits: int = 9, decimal_obj: 
         >>> dms_to_degree_lonlat(140516.27814, 36103600.00000)
         (140.087855042, 36.103774792)
     """
-    pass
+    deg_lon = dms_to_degree(lon, digits, decimal_obj)
+    deg_lat = dms_to_degree(lat, digits, decimal_obj)
+    return XY(x=deg_lon, y=deg_lat)
 
 
 def _dms_to_degree_lonlat_list(
-    lon_list: Iterable[float], lat_list: Iterable[float], digits: int = 9, decimal_obj: bool = False
+    lon_list: Iterable[float],
+    lat_list: Iterable[float],
+    decimal_obj: bool = False,
+    digits: int = 9,
 ) -> list[XY]:
     """
     ## Description:
@@ -105,10 +139,17 @@ def _dms_to_degree_lonlat_list(
         >>> dms_to_degree_lonlat_list([140516.27814, 140516.27814], [36103600.00000, 36103600.00000])
         [(140.087855042, 36.103774792), (140.087855042, 36.103774792)]
     """
-    pass
+    assert len(lon_list) == len(lat_list), "lon_list and lat_list must have the same length." # type: ignore
+    assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."# type: ignore
+    assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."# type: ignore
+    result = []
+    for lon, lat in zip(lon_list, lat_list, strict=False):
+        xy = _dms_to_degree_lonlat(lon, lat, digits, decimal_obj)
+        result.append(xy)
+    return result
 
 
-def dms_to_lonlat(
+def dms_to_degree_lonlat(
     lon: float | Iterable[float],
     lat: float | Iterable[float],
     digits: int = 9,
@@ -132,10 +173,12 @@ def dms_to_lonlat(
             - x: float | Decimal
             - y: float | Decimal
     """
-    pass
+    if isinstance(lon, Iterable):
+        return _dms_to_degree_lonlat_list(lon, lat, decimal_obj, digits)  # type: ignore
+    return _dms_to_degree_lonlat(lon, lat, digits, decimal_obj)  # type: ignore
 
 
-def _degree_to_dms_lonlat(lon: float, lat: float, decimal_obj: bool = False, digits: int = 5) -> XY:
+def _degree_to_dms_lonlat(lon: float, lat: float, digits: int = 5, decimal_obj: bool = False) -> XY:
     """
     ## Description:
         10進法経緯度を度分秒経緯度に変換する関数
@@ -157,11 +200,13 @@ def _degree_to_dms_lonlat(lon: float, lat: float, decimal_obj: bool = False, dig
         >>> degree_to_dms_lonlat(140.08785504166664, 36.103774791666666)
         (140516.2781, 36103600.0000)
     """
-    pass
+    dms_lon = degree_to_dms(lon, digits, decimal_obj)
+    dms_lat = degree_to_dms(lat, digits, decimal_obj)
+    return XY(x=dms_lon, y=dms_lat)
 
 
 def _degree_to_dms_lonlat_list(
-    lon_list: Iterable[float], lat_list: Iterable[float], decimal_obj: bool = False, digits: int = 5
+    lon_list: Iterable[float], lat_list: Iterable[float], digits: int = 5, decimal_obj: bool = False
 ) -> list[XY]:
     """
     ## Description:
@@ -184,11 +229,21 @@ def _degree_to_dms_lonlat_list(
         >>> degree_to_dms_lonlat_list([140.08785504166664, 140.08785504166664], [36.103774791666666, 36.103774791666666])
         [(140516.2781, 36103600.0000), (140516.2781, 36103600.0000)]
     """
-    pass
+    assert len(lon_list) == len(lat_list), "lon_list and lat_list must have the same length."  # type: ignore
+    assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."  # type: ignore
+    assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."  # type: ignore
+    result = []
+    for lon, lat in zip(lon_list, lat_list, strict=False):
+        xy = _degree_to_dms_lonlat(lon, lat, digits, decimal_obj)
+        result.append(xy)
+    return result
 
 
-def degree_to_lonlat(
-    lon: float | Iterable[float], lat: float | Iterable[float], decimal_obj: bool = False, digits: int = 5
+def degree_to_dms_lonlat(
+    lon: float | Iterable[float],
+    lat: float | Iterable[float],
+    digits: int = 5,
+    decimal_obj: bool = False,
 ) -> XY | list[XY]:
     """
     ## Description:
@@ -208,4 +263,6 @@ def degree_to_lonlat(
             - x: float | Decimal
             - y: float | Decimal
     """
-    pass
+    if isinstance(lon, Iterable):
+        return _degree_to_dms_lonlat_list(lon, lat, digits, decimal_obj)  # type: ignore
+    return _degree_to_dms_lonlat(lon, lat, digits, decimal_obj)  # type: ignore
