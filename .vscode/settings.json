@@ -6,5 +6,12 @@
             "source.organizeImports": "explicit"
         },
         "editor.defaultFormatter": "charliermarsh.ruff"
-    }
+    },
+    "editor.rulers": [
+        {
+            "column": 88,
+            "color": "#b4b8b6",
+            "position": "right"
+        }
+    ],
 }
