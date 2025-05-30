@@ -1,0 +1,105 @@
+from decimal import Decimal
+
+import pytest
+
+from chiriin.config import XY
+from chiriin.geometries import degree_to_dms, degree_to_dms_lonlat, dms_to_degree, dms_to_degree_lonlat
+
+DMS1_LON = 1403906.4277
+DEG1_LON = 140.651785472
+DMS1_LAT = 405109.1161
+DEG1_LAT = 40.85253225
+
+
+@pytest.mark.parametrize(
+    "dms, digits, decimal_obj, expected",
+    [
+        (DMS1_LON, 9, False, DEG1_LON),
+        (DMS1_LON, 9, True, Decimal(f"{DEG1_LON}")),
+        (DMS1_LAT, 9, False, DEG1_LAT),
+    ],
+)
+def test_dms_to_degree(dms, digits, decimal_obj, expected):
+    """Test the conversion from DMS to decimal degrees."""
+    result = dms_to_degree(dms, digits, decimal_obj)
+    if decimal_obj:
+        assert isinstance(result, Decimal)
+    else:
+        assert isinstance(result, float)
+        assert result == pytest.approx(expected, rel=1 * 10**-digits)
+    with pytest.raises(ValueError):
+        dms_to_degree("invalid_dms", digits, decimal_obj)  # type: ignore
+    with pytest.raises(ValueError):
+        dms_to_degree(1400000000.1234, 9, False)
+
+
+@pytest.mark.parametrize(
+    "lon, lat, digits, decimal_obj, expected",
+    [
+        (DMS1_LON, DMS1_LAT, 9, False, XY(x=DEG1_LON, y=DEG1_LAT)),
+        (DMS1_LON, DMS1_LAT, 9, True, XY(x=Decimal(f"{DEG1_LON}"), y=Decimal(f"{DEG1_LAT}"))),
+        ([DMS1_LON], [DMS1_LAT], 9, False, [XY(x=DEG1_LON, y=DEG1_LAT)]),
+    ],
+)
+def test_dms_to_lonlat(lon, lat, digits, decimal_obj, expected):
+    """Test the conversion from DMS to lonlat."""
+    result = dms_to_degree_lonlat(lon, lat, digits, decimal_obj)
+    if isinstance(expected, list):
+        for res_xy, exp_xy in zip(result, expected, strict=False):
+            assert isinstance(res_xy, XY)
+            if not decimal_obj:
+                assert res_xy.x == pytest.approx(exp_xy.x, rel=1 * 10**-digits)
+                assert res_xy.y == pytest.approx(exp_xy.y, rel=1 * 10**-digits)
+    else:
+        assert isinstance(result, XY)
+        if not decimal_obj:
+            assert result.x == pytest.approx(expected.x, rel=1 * 10**-digits)
+            assert result.y == pytest.approx(expected.y, rel=1 * 10**-digits)
+
+
+@pytest.mark.parametrize(
+    "degree, digits, decimal_obj, expected",
+    [
+        (DEG1_LON, 4, False, DMS1_LON),
+        (DEG1_LON, 4, True, Decimal(f"{DMS1_LON}")),
+        (DEG1_LAT, 4, False, DMS1_LAT),
+    ],
+)
+def test_degree_to_dms(degree, digits, decimal_obj, expected):
+    """Test the conversion from decimal degrees to DMS."""
+    result = degree_to_dms(degree, digits, decimal_obj)
+    if decimal_obj:
+        assert isinstance(result, Decimal)
+    else:
+        assert isinstance(result, float)
+        assert result == pytest.approx(expected, rel=1 * 10**-digits)
+
+    with pytest.raises(ValueError):
+        degree_to_dms("invalid_degree", digits, decimal_obj)  # type: ignore
+    with pytest.raises(ValueError):
+        degree_to_dms(200, 10, False)
+
+
+@pytest.mark.parametrize(
+    "lon, lat, digits, decimal_obj, expected",
+    [
+        (DEG1_LON, DEG1_LAT, 4, False, (DMS1_LON, DMS1_LAT)),
+        (DEG1_LON, DEG1_LAT, 4, True, (Decimal(f"{DMS1_LON}"), Decimal(f"{DMS1_LAT}"))),
+        ([DEG1_LON], [DEG1_LAT], 4, False, [(DMS1_LON, DMS1_LAT)]),
+    ],
+)
+def test_degree_to_lonlat(lon, lat, digits, decimal_obj, expected):
+    """Test the conversion from lonlat to DMS."""
+    result = degree_to_dms_lonlat(lon, lat, digits, decimal_obj)
+    if isinstance(expected, list):
+        assert isinstance(result, list)
+        for res_xy, exp_xy in zip(result, expected, strict=False):
+            assert isinstance(res_xy, XY)
+            if not decimal_obj:
+                assert res_xy.x == pytest.approx(exp_xy[0], rel=1 * 10**-digits)
+                assert res_xy.y == pytest.approx(exp_xy[1], rel=1 * 10**-digits)
+    else:
+        assert isinstance(result, XY)
+        if not decimal_obj:
+            assert result.x == pytest.approx(expected[0], rel=1 * 10**-digits)
+            assert result.y == pytest.approx(expected[1], rel=1 * 10**-digits)
