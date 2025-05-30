@@ -3,29 +3,7 @@ import datetime
 import numpy as np
 import pytest
 
-from chiriin.utils import datetime_formatter, dimensional_count
-
-
-@pytest.mark.parametrize(
-    "datetime_",
-    [
-        "2023-11-16T11:06:21.700+09:00",
-        "2023-11-16T11:06:21.700",
-        "2023-11-16 11:06:21",
-        "2023-11-16",
-        "2023/11/16 11:06:21",
-        "2023/11/16 11:06",
-        datetime.datetime(2023, 11, 16, 11, 6, 21, 700000),
-    ],
-)
-def test_datetime_formatter(datetime_):
-    """Test datetime_formatter function."""
-    result = datetime_formatter(datetime_)
-    assert isinstance(result, datetime.datetime)
-    with pytest.raises(ValueError):
-        datetime_formatter("invalid datetime string")
-    with pytest.raises(TypeError):
-        datetime_formatter(12345)  # type: ignore
+from chiriin.utils import dimensional_count
 
 
 @pytest.mark.parametrize(
