@@ -5,11 +5,6 @@ FROM mcr.microsoft.com/devcontainers/python:3.12
 RUN apt-get update \
     && export DEBIAN_FRONTEND=noninteractive \
     && apt-get upgrade -y \
-    && apt-get -y install --no-install-recommends \
-        # GDALに必要なパッケージ
-        tzdata \
-       gdal-bin \
-       libgdal-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -18,19 +13,11 @@ RUN pip install --upgrade pip\
     && pip install setuptools\
     && pip install requests\
     && pip install numpy\
-    # https://pypi.org/project/GDAL/
-    && pip install gdal[numpy]=="$(gdal-config --version).*" --no-build-isolation\
-    && pip install matplotlib\
     && pip install pandas\
     && pip install shapely\
     && pip install pyproj\
     && pip install geopandas\
-    && pip install lxml\
-    && pip install fastkml\
     && pip install pydantic\
-    && pip install numba\
-    && pip install scipy\
-    && pip install memory-profiler\
     && pip install ruff\
     && pip install pytest\
     && pip install pytest-cov\
