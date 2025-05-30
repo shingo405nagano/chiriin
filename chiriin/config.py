@@ -9,7 +9,7 @@ from chiriin.utils import datetime_formatter
 
 # Load the mag data from a CSV file.
 _mag_df = pd.read_csv(
-    os.path.join(os.path.dirname(__file__), "chiriin", "data", "mag_2020.csv"),
+    os.path.join(os.path.dirname(__file__), "data", "mag_2020.csv"),
     dtype={"mesh_code": int, "mag": float},
 )
 _mag_df["mesh_code"] = _mag_df["mesh_code"].astype(int).astype(str)
