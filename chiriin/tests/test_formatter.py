@@ -4,6 +4,10 @@ import pytest
 
 from chiriin.formatter import (
     datetime_formatter,
+    float_formatter,
+    integer_formatter,
+    iterable_float_formatter,
+    iterable_integer_formatter,
     type_checker_datetime,
     type_checker_float,
     type_checker_integer,
@@ -108,3 +112,62 @@ def test_type_checker_datetime(datetime_, success):
     else:
         with pytest.raises((ValueError, TypeError)):
             dummy_function(datetime_)
+
+
+@pytest.mark.parametrize("value", [100, 100.0, "100"])
+def test_float_formatter(value):
+    """Test float_formatter function."""
+    result = float_formatter(value)
+    assert isinstance(result, float)
+
+
+@pytest.mark.parametrize("value", [100, 100.0, "100"])
+def test_integer_formatter(value):
+    """Test integer_formatter function."""
+    result = integer_formatter(value)
+    assert isinstance(result, int)
+
+
+@pytest.mark.parametrize(
+    "value, success",
+    [
+        (100, False),
+        ([1, 2, 3], True),
+        ([1.0, 2.0, 3.0], True),
+        (["1", "2", "3"], True),
+        (["1.0", "2.0", "3.0"], True),
+        ("100", False),
+        ([[1, 2], [3, 4]], False),
+    ],
+)
+def test_iterable_float_formatter(value, success):
+    """Test iterable_float_formatter function."""
+    if success:
+        result = iterable_float_formatter(value)
+        assert isinstance(result, list)
+        assert all(isinstance(v, float) for v in result)
+    else:
+        with pytest.raises(Exception):  # noqa: B017
+            iterable_float_formatter(value)
+
+
+@pytest.mark.parametrize(
+    "value, success",
+    [
+        (100, False),
+        ([1, 2, 3], True),
+        ([1.0, 2.0, 3.0], True),
+        (["1", "2", "3"], True),
+        ("100", False),
+        ([[1, 2], [3, 4]], False),
+    ],
+)
+def test_iterable_integer_formatter(value, success):
+    """Test iterable_integer_formatter function."""
+    if success:
+        result = iterable_integer_formatter(value)
+        assert isinstance(result, list)
+        assert all(isinstance(v, int) for v in result)
+    else:
+        with pytest.raises(Exception):  # noqa: B017
+            iterable_integer_formatter(value)

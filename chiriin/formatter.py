@@ -1,5 +1,7 @@
 import datetime
-from typing import Any
+from typing import Any, Iterable
+
+from chiriin.utils import dimensional_count
 
 
 def datetime_formatter(dt: datetime.datetime | str) -> datetime.datetime:
@@ -184,3 +186,71 @@ def type_checker_datetime(arg_index: int, kward: str) -> datetime.datetime:
         return wrapper
 
     return decorator
+
+
+@type_checker_float(arg_index=0, kward="value")
+def float_formatter(value: int | float | str) -> float:
+    """
+    ## Description:
+        Function to format a float value.
+    ## Args:
+        value (int | float | str):
+            The value to be formatted as a float.
+            It can be an integer, a float, or a string that can be converted to a float.
+    ## Returns:
+        float:
+            The formatted float value.
+    """
+    return value
+
+
+@type_checker_integer(arg_index=0, kward="value")
+def integer_formatter(value: int | float | str) -> int:
+    """
+    ## Description:
+        Function to format an integer value.
+    ## Args:
+        value (int | float | str):
+            The value to be formatted as an integer.
+            It can be an integer, a float, or a string that can be converted to an integer.
+    ## Returns:
+        int:
+            The formatted integer value.
+    """
+    return value
+
+
+def iterable_float_formatter(values: Iterable) -> list[float]:
+    """
+    ## Description:
+        Function to format one-dimensional iterable values as a list of floating-point numbers.
+    ## Args:
+        values (Iterable):
+            An iterable containing values that can be converted to float.
+            It can be a list, tuple, or any other iterable containing numeric values.
+            However, it must be one-dimensional iterable.
+    ## Returns:
+        list[float]:
+            A list of formatted float values.
+    """
+    count = dimensional_count(values)
+    assert count == 1, f"Expected one-dimensional iterable, got {count}D iterable."
+    return [float_formatter(value) for value in values]
+
+
+def iterable_integer_formatter(values: Iterable) -> list[int]:
+    """
+    ## Description:
+        Function to format one-dimensional iterable values as a list of integers.
+    ## Args:
+        values (Iterable):
+            An iterable containing values that can be converted to integer.
+            It can be a list, tuple, or any other iterable containing numeric values.
+            However, it must be one-dimensional iterable.
+    ## Returns:
+        list[int]:
+            A list of formatted integer values.
+    """
+    count = dimensional_count(values)
+    assert count == 1, f"Expected one-dimensional iterable, got {count}D iterable."
+    return [integer_formatter(value) for value in values]
