@@ -110,5 +110,4 @@
         "editor.defaultFormatter": "charliermarsh.ruff"
 
     },
-    "python.defaultInterpreterPath": "C:\\Program Files\\QGIS 3.40.4\\bin\\python.exe",
 }
