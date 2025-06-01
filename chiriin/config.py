@@ -6,7 +6,7 @@ from typing import NamedTuple, Optional
 
 import pandas as pd
 
-from chiriin.utils import datetime_formatter
+from chiriin.formatter import datetime_formatter
 
 # Load the mag data from a CSV file.
 _mag_df = pd.read_csv(
@@ -163,7 +163,7 @@ def semidynamic_correction_file(datetime_: datetime.datetime) -> Optional[pd.Dat
             except UnicodeDecodeError:
                 continue
     except Exception:
-        raise ValueError("Failed to read the file with all encodings.use encofings: " + ", ".join(encodings))
+        raise ValueError("Failed to read the file with all encodings.use encofings: " + ", ".join(encodings))  # noqa: B904
 
 
 class ChiriinWebApi(object):
