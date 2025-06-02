@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 from typing import Any, Iterable
 
 from chiriin.utils import dimensional_count
@@ -188,6 +189,41 @@ def type_checker_datetime(arg_index: int, kward: str) -> datetime.datetime:
     return decorator
 
 
+def type_checker_decimal(arg_index: int, kward: str) -> float:
+    """
+    ## Description:
+        Decorator to check if a function argument is a decimal or convertible to decimal.
+    ## Args:
+        arg_index (int):
+            The index of the argument to check if it is a decimal.
+        kward (str):
+            The keyword argument to check if it is a decimal.
+    ## Returns:
+        float:
+            The decimal value of the argument.
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            data = _intermediate(arg_index, kward, *args, **kwargs)
+            data["arg_index"] = arg_index
+            data["kward"] = kward
+            value = data["value"]
+            if isinstance(value, Decimal):
+                return func(*args, **kwargs)
+            try:
+                value = Decimal(f"{float(value)}")
+            except Exception:
+                raise TypeError(f"Argument '{kward}' must be a decimal or convertible to decimal, got {type(value)}")  # noqa: B904
+            else:
+                result = _return_value(value, data, args, kwargs)
+                return func(*result["args"], **result["kwargs"])
+
+        return wrapper
+
+    return decorator
+
+
 @type_checker_float(arg_index=0, kward="value")
 def float_formatter(value: int | float | str) -> float:
     """
@@ -254,3 +290,21 @@ def iterable_integer_formatter(values: Iterable) -> list[int]:
     count = dimensional_count(values)
     assert count == 1, f"Expected one-dimensional iterable, got {count}D iterable."
     return [integer_formatter(value) for value in values]
+
+
+def iterable_decimalize_formatter(values: Iterable) -> list[Decimal]:
+    """
+    ## Description:
+        Function to format one-dimensional iterable values as a list of Decimal numbers.
+    ## Args:
+        values (Iterable):
+            An iterable containing values that can be converted to Decimal.
+            It can be a list, tuple, or any other iterable containing numeric values.
+            However, it must be one-dimensional iterable.
+    ## Returns:
+        list[Decimal]:
+            A list of formatted Decimal values.
+    """
+    count = dimensional_count(values)
+    assert count == 1, f"Expected one-dimensional iterable, got {count}D iterable."
+    return [Decimal(f"{float(value)}") for value in values]
