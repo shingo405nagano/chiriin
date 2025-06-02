@@ -8,7 +8,7 @@ import pandas as pd
 
 from chiriin.formatter import datetime_formatter
 
-# Load the mag data from a CSV file.
+# 地磁気値（偏角）のデータを読み込んで辞書型に変換。辞書のキーは第二次メッシュコード（int型）
 _mag_df = pd.read_csv(
     os.path.join(os.path.dirname(__file__), "data", "mag_2020.csv"),
     dtype={"mesh_code": int, "mag": float},
@@ -38,7 +38,12 @@ class XYZ(NamedTuple):
 
 
 class MeshDesign(NamedTuple):
-    """ """
+    """
+    name(str): 識別名
+    lon(float): 経度
+    lat(float): 緯度
+    standard_mesh_code(str): 標準メッシュコード
+    """
 
     name: str
     lon: float
@@ -47,7 +52,10 @@ class MeshDesign(NamedTuple):
 
 
 class Delta(NamedTuple):
-    """補正値を格納するクラス"""
+    """
+    ## Description:
+        3次元座標の補正値を格納するクラス。
+    """
 
     delta_x: float
     delta_y: float
@@ -56,7 +64,7 @@ class Delta(NamedTuple):
 
 class SemidynamicCorrectionFiles(object):
     def __init__(self):
-        self.files = glob(os.path.join(os.path.dirname(__file__), "chiriin", "data", "*Semi*.par"))
+        self.files = glob(os.path.join(os.path.dirname(__file__), "data", "*Semi*.par"))
 
     def _get_file_path(self, datetime_: datetime.datetime) -> FilePath:
         """
@@ -155,13 +163,13 @@ def semidynamic_correction_file(datetime_: datetime.datetime) -> Optional[pd.Dat
             すべてのエンコーディングでファイルの読み込みに失敗した場合
     """
     semi = SemidynamicCorrectionFiles()
-    encodings = ["utf-8", "shift_jis", "cp932"]
+    encodings = ["Shift-JIS", "utf-8", "cp932"]
     try:
         for encoding in encodings:
             try:
                 return semi.read_file(datetime_, encoding=encoding)
             except UnicodeDecodeError:
-                continue
+                pass
     except Exception:
         raise ValueError("Failed to read the file with all encodings.use encofings: " + ", ".join(encodings))  # noqa: B904
 
