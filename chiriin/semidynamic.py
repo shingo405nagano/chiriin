@@ -249,35 +249,116 @@ class SemiDynamic(object):
         lower_right_delta = delta_sets["lower_right"]
         upper_left_delta = delta_sets["upper_left"]
         upper_right_delta = delta_sets["upper_right"]
+        data = {
+            "lon_sec": lon,
+            "lat_sec": lat,
+            "lower_left_design": lower_left_design,
+            "lower_right_design": lower_right_design,
+            "upper_left_design": upper_left_design,
+        }
         # バイリニア補間により補正値を計算
-        x_norm = (lon - lower_left_design.lon) / (lower_right_design.lon - lower_left_design.lon)
-        y_norm = (lat - lower_left_design.lat) / (upper_left_design.lat - lower_left_design.lat)
-        delta_lon_p = (
-            (1 - y_norm) * (1 - x_norm) * lower_left_delta.delta_x
-            + y_norm * (1 - x_norm) * lower_right_delta.delta_x
-            + y_norm * x_norm * upper_right_delta.delta_x
-            + (1 - y_norm) * x_norm * upper_left_delta.delta_x
+        delta_lon = self._bilinear_interpolation_delta(
+            lower_left_delta=lower_left_delta.delta_x,
+            lower_right_delta=lower_right_delta.delta_x,
+            upper_left_delta=upper_left_delta.delta_x,
+            upper_right_delta=upper_right_delta.delta_x,
+            **data,
         )
-        delta_lat_p = (
-            (1 - y_norm) * (1 - x_norm) * lower_left_delta.delta_y
-            + y_norm * (1 - x_norm) * lower_right_delta.delta_y
-            + y_norm * x_norm * upper_right_delta.delta_y
-            + (1 - y_norm) * x_norm * upper_left_delta.delta_y
+        delta_lat = self._bilinear_interpolation_delta(
+            lower_left_delta=lower_left_delta.delta_y,
+            lower_right_delta=lower_right_delta.delta_y,
+            upper_left_delta=upper_left_delta.delta_y,
+            upper_right_delta=upper_right_delta.delta_y,
+            **data,
         )
+        delta_alti = self._bilinear_interpolation_delta(
+            lower_left_delta=lower_left_delta.delta_z,
+            lower_right_delta=lower_right_delta.delta_z,
+            upper_left_delta=upper_left_delta.delta_z,
+            upper_right_delta=upper_right_delta.delta_z,
+            **data,
+        )
+
         # 元期から今期へのパラメーターなので、今期から元期へは -1 を掛ける
         if return_to_original:
-            delta_lon_p *= -1
-            delta_lat_p *= -1
-        return Delta(delta_x=delta_lon_p, delta_y=delta_lat_p, delta_z=0)
+            delta_lon *= -1
+            delta_lat *= -1
+            delta_alti *= -1
+        return Delta(delta_x=delta_lon, delta_y=delta_lat, delta_z=delta_alti)
+
+    @type_checker_decimal(arg_index=1, kward="lon_sec")
+    @type_checker_decimal(arg_index=2, kward="lat_sec")
+    @type_checker_decimal(arg_index=6, kward="lower_left_delta")
+    @type_checker_decimal(arg_index=7, kward="lower_right_delta")
+    @type_checker_decimal(arg_index=8, kward="upper_left_delta")
+    @type_checker_decimal(arg_index=9, kward="upper_right_delta")
+    def _bilinear_interpolation_delta(
+        self,
+        lon_sec: float | Decimal,
+        lat_sec: float | Decimal,
+        lower_left_design: MeshDesign,
+        lower_right_design: MeshDesign,
+        upper_left_design: MeshDesign,
+        lower_left_delta: float | Decimal,
+        lower_right_delta: float | Decimal,
+        upper_left_delta: float | Decimal,
+        upper_right_delta: float | Decimal,
+    ) -> Decimal:
+        """
+        ## Description:
+            バイリニア補間を使用して、指定された緯度経度の補正値を計算する。
+        Args:
+            lon_sec (float | Decimal):
+                ターゲットの経度（秒単位）
+            lat_sec (float | Decimal):
+                ターゲットの緯度（秒単位）
+            lower_left_design (MeshDesign):
+                左下のメッシュ設計
+            lower_right_design (MeshDesign):
+                右下のメッシュ設計
+            upper_left_design (MeshDesign):
+                左上のメッシュ設計
+            lower_left_delta (float | Decimal):
+                左下の補正値（秒単位）
+            lower_right_delta (float | Decimal):
+                右下の補正値（秒単位）
+            upper_left_delta (float | Decimal):
+                左上の補正値（秒単位）
+            upper_right_delta (float | Decimal):
+                右上の補正値（秒単位）
+        Returns:
+            Decimal:
+                補正値（秒単位）
+        """
+        vertical_distance = upper_left_design.lat - lower_left_design.lat
+        horizontal_distance = lower_right_design.lon - lower_left_design.lon
+        y_norm_lw = (lat_sec - lower_left_design.lat) / vertical_distance
+        y_norm_up = (upper_left_design.lat - lat_sec) / vertical_distance
+        x_norm_left = (lon_sec - lower_left_design.lon) / horizontal_distance
+        x_norm_right = (lower_right_design.lon - lon_sec) / horizontal_distance
+        # バイリニア補間の計算
+        delta = (
+            y_norm_lw * x_norm_right * upper_left_delta
+            + y_norm_up * x_norm_right * upper_right_delta
+            + y_norm_lw * x_norm_left * lower_left_delta
+            + y_norm_up * x_norm_left * lower_right_delta
+        )
+        return delta
 
     def correction_2d(self, return_to_original: bool = True) -> XY | list[XY]:
         """
         ## Description:
-            Receives longitude and latitude (decimal system) and performs semi-dynamic correction.
+            経緯度に対してセミダイナミック補正を行う。補正パラメーターの適用年はインス
+            タンス化時に指定されたdatetime_に基づく。
         Args:
             return_to_original (bool, optional):
-                True makes a correction from the current period to the previous period.
-                False makes a correction from the previous period to the current period.
+                Trueは今期から元期への補正を行う。Falseは元期から今期への補正を行う。
+                デフォルトはTrue。
+        ## Returns:
+            XY | list[XY]:
+                補正後の経度と緯度を含むXYオブジェクトまたはXYオブジェクトのリスト。
+                - XY: 補正後の経度と緯度を含むオブジェクト
+                - list[XY]: 複数のXYオブジェクトを含むリスト
         Returns:
         """
         if not self._is_iterable:
