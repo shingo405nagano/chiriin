@@ -3,7 +3,7 @@ exclude = [
     ".venv",
     ".ruff_cache"
 ]
-line-length = 119
+line-length = 90
 indent-width = 4
 target-version = "py310"
 
