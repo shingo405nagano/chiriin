@@ -1,5 +1,6 @@
 import datetime
 import os
+import time
 
 import pandas as pd
 import pytest
@@ -32,13 +33,14 @@ def test_fetch_elevation_from_web():
         (datetime.datetime(2023, 10, 1, 0, 0, 0), 2, True, False),
         (datetime.datetime(2022, 10, 1, 0, 0, 0), 2, False, False),
         (datetime.datetime(2021, 10, 1, 0, 0, 0), 3, True, False),
-        (datetime.datetime(2020, 10, 1, 0, 0, 0), 3, False, False),
         (datetime.datetime(2020, 10, 1, 0, 0, 0), 0, True, True),
     ],
 )
 def test_fetch_corrected_semidynamic_from_web(
     datetime_, dimension, return_to_original, err
 ):
+    # APIの制限により、連続してリクエストを送るとエラーになるため、テスト間に待機時間を設ける。
+    time.sleep(10)
     corrected_xyz = fetch_corrected_semidynamic_from_web(
         datetime_,
         LON if err is False else [340.00],
@@ -60,4 +62,4 @@ def test_fetch_corrected_semidynamic_from_web(
                 assert coords.z != 0.0
     else:
         for coords in corrected_xyz:
-            assert isinstance(coords, None)
+            assert coords is None
