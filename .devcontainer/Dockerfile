@@ -18,6 +18,7 @@ RUN pip install --upgrade pip\
     && pip install pyproj\
     && pip install geopandas\
     && pip install pydantic\
+    && pip install aiohttp\
     && pip install ruff\
     && pip install pytest\
     && pip install pytest-cov\
