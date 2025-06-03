@@ -36,8 +36,7 @@ class SemiDynamic(object):
     def _convert_lon_lat(self):
         """
         ## Description:
-            Convert longitude and latitude values to DecimalObject or
-            iterable of DecimalObject.
+            経緯度をDecimal型に変換する。オブジェクトが繰り返し可能な場合は、Decimalのリストに変換する。
         """
         count_lon = dimensional_count(self.lon)
         count_lat = dimensional_count(self.lat)
@@ -57,12 +56,11 @@ class SemiDynamic(object):
     def _read_parameters(self) -> pd.DataFrame:
         """
         ## Description:
-            Read the semi-dynamic correction parameters from a file based on the datetime.
+            セミダイナミック補正のパラメータを読み込む。
         ## Returns:
-            pd.DataFrame:
+            pd.DataFrame: deltaは秒単位の補正値を表す。
                 Index: Mesh code(int)
                 Columns: delta_x(float), delta_y(float), delta_z(float)
-            'delta' is DMS float format.
         """
         return semidynamic_correction_file(self.datetime)
 
@@ -71,25 +69,25 @@ class SemiDynamic(object):
     def mesh_design(self, lon: float, lat: float) -> dict[str, MeshDesign]:
         """
         ## Description:
-            Generate mesh designs for the given longitude and latitude.
+            指定された緯度経度のメッシュを設計する。
         ## Args:
             lon (Decimal):
-                Longitude in degrees.
+                10進数経度
             lat (Decimal):
-                Latitude in degrees.
+                10進数緯度
         ## Returns:
             dict[str, MeshDesign] | list[MeshDesign]:
-                A dictionary containing mesh designs for the four corners of the mesh.
+                メッシュの四隅のデータ
                 Mesh designs include:
-                - lower_left: MeshDesign for the lower left corner
-                - lower_right: MeshDesign for the lower right corner
-                - upper_left: MeshDesign for the upper left corner
-                - upper_right: MeshDesign for the upper right corner
+                - lower_left: 左下の設計
+                - lower_right: 右下の設計
+                - upper_left: 左上の設計
+                - upper_right: 右上の設計
             MeshDesign:
-                - name: Name of the mesh corner (e.g., 'lower_left')
-                - lon: Longitude in seconds
-                - lat: Latitude in seconds
-                - standard_mesh_code: Standard mesh code for the corner
+                - name: 識別名
+                - lon: 経度（秒単位）
+                - lat: 緯度（秒単位）
+                - standard_mesh_code: 標準メッシュコード
         """
         lon_param = 225
         lat_param = 150
@@ -143,19 +141,19 @@ class SemiDynamic(object):
     ) -> MeshDesign:
         """
         ## Description:
-            Adjust the mesh code from the longitude and latitude in seconds.
+            緯度経度からメッシュコードを秒単位で調整する。
         Args:
-            lower_left_sec_lon (float): Longitude (in seconds) at lower left
-            lower_left_sec_lat (float): Latitude (in seconds) at lower left
-            lon_param (int, optional): Longitude parameter.Default is 225.
-            lat_param (int, optional): Latitude parameter. Default is 150.
-            name (str, optional): Name of the mesh corner. Default is "lower_right".
+            lower_left_sec_lon (float): 左下の経度（秒）
+            lower_left_sec_lat (float): 左下の緯度（秒）
+            lon_param (int, optional): 経度のパラメータ。デフォルトは225。
+            lat_param (int, optional): 緯度のパラメータ。デフォルトは150。
+            name (str, optional): 識別名
         Returns:
             MeshDesign:
-                - name: Name of the mesh corner
-                - lon: Longitude in seconds
-                - lat: Latitude in seconds
-                - standard_mesh_code: Standard mesh code for the corner
+                - name: 識別名
+                - lon: 秒単位経度
+                - lat: 秒単位緯度
+                - standard_mesh_code: 標準メッシュコード
         """
         sec_lon = lower_left_sec_lon + lon_param
         sec_lat = lower_left_sec_lat + lat_param
@@ -170,13 +168,18 @@ class SemiDynamic(object):
     def _get_delta_sets(self, mesh_designs: dict[str, MeshDesign]) -> dict[str, Delta]:
         """
         ## Description:
-            Obtain Delta in 4 directions from the parameters of the semi-dynamic correction.
+            セミダイナミック補正のパラメータから4方向の補正値を求める。
         Args:
             mesh_designs (dict[str, MeshDesign]):
-                Dictionaries containing mesh designs for the four corners of the mesh.
+                メッシュ設計の辞書。キーは "lower_left", "lower_right", "upper_left", "upper_right"。
+                各値はMeshDesignオブジェクト。
         Returns:
             DeltaSet:
-                DeltaSet object containing Delta in 4 directions.
+                各方向の補正値を含む辞書。
+                - lower_left: 左下の補正値
+                - lower_right: 右下の補正値
+                - upper_left: 左上の補正値
+                - upper_right: 右上の補正値
         """
         lower_left_delta = self._get_delta(mesh_designs["lower_left"].standard_mesh_code)
         lower_right_delta = self._get_delta(mesh_designs["lower_right"].standard_mesh_code)
@@ -192,17 +195,15 @@ class SemiDynamic(object):
     def _get_delta(self, mesh_code: str) -> Delta:
         """
         ## Description:
-            Obtain Delta from the parameters of the semi-dynamic correction.
+            セミダイナミック補正のパラメータから指定されたメッシュコードの補正値を取得する。
         Args:
-            param_df (pd.DataFrame):
-                DataFrame containing parameters for semi-dynamic correction
             mesh_code (str):
-                mesh cord
+                補正値を取得するメッシュコード。
         Returns:
             Delta:
-                - delta_x(Decimal): Correction value for x-coordinate
-                - delta_y(Decimal): Correction value for y-coordinate
-                - delta_z(Decimal): Correction value for z-coordinate
+                - delta_x(Decimal): 経度の補正値（秒単位）
+                - delta_y(Decimal): 緯度の補正値（秒単位）
+                - delta_z(Decimal): 標高の補正値（メートル単位）
         """
         try:
             row = self._param_df.loc[int(mesh_code)]

@@ -20,7 +20,22 @@ class MeshCode(object):
 
     def _mesh_code(self, lon: float, lat: float) -> dict[str, str]:
         """
-        この計算に使用されている1文字の変数名は[地域メッシュ統計の特質・沿革 p12](https://www.stat.go.jp/data/mesh/pdf/gaiyo1.pdf)を参考にしています。
+        ## Description:
+            この計算に使用されている1文字の変数名は[地域メッシュ統計の特質・沿革 p12]
+            (https://www.stat.go.jp/data/mesh/pdf/gaiyo1.pdf)を参考にしています。
+        ## Args:
+            lon (float):
+                経度（10進法）
+            lat (float):
+                緯度（10進法）
+        ## Returns:
+            dict[str, str]:
+                メッシュコードの各部分を含む辞書
+                - first_mesh_code: 第一メッシュコード
+                - secandary_mesh_code: 第二メッシュコード
+                - standard_mesh_code: 標準メッシュコード
+                - half_mesh_code: 半分メッシュコード
+                - quarter_mesh_code: 四分割メッシュコード
         """
         # latitude
         p, a = divmod(lat * 60, 40)

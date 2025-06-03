@@ -11,9 +11,11 @@ def datetime_formatter(dt: datetime.datetime | str) -> datetime.datetime:
         日時のフォーマットを統一する関数
         datetimeオブジェクトまたは文字列を受け取り、マイクロ秒を0にして返す
     ## Args:
-        dt (datetime.datetime | str): 日時を表すdatetimeオブジェクトまたは文字列
+        dt (datetime.datetime | str):
+            日時を表すdatetimeオブジェクトまたは文字列
     ## Returns:
-        datetime.datetime: マイクロ秒が0に設定されたdatetimeオブジェクト
+        datetime.datetime:
+            マイクロ秒が0に設定されたdatetimeオブジェクト
     """
     fmts = [
         "%Y-%m-%dT%H:%M:%S.%f+%z",
@@ -45,19 +47,21 @@ def datetime_formatter(dt: datetime.datetime | str) -> datetime.datetime:
 def _intermediate(arg_index, kward, *args, **kwargs) -> dict[str, Any]:
     """
     ## Description:
-        Helper function to determine if the argument is in args or kwargs.
+        引数が args にあるか kwargs にあるかを判定するヘルパー関数。
     ## Args:
         arg_index (int):
-            The index of the argument to check.
+            位置引数のインデックス。
         kward (str):
-            The keyword argument to check.
+            キーワード引数の名前。
         *args:
-            Variable length argument list.
+            可変長引数リスト。
         **kwargs:
-            Arbitrary keyword arguments.
+            任意のキーワード引数。
     ## Returns:
         dict:
-            A dictionary containing whether the argument is in args or kwargs and its value.
+            辞書型で、引数が args にあるかどうかとその値を含む。
+            "in_args" (bool): 引数が args にある場合は True、kwargs にある場合は False。
+            "value" (Any): 引数の値。
     """
     in_args = True
     value = None
@@ -97,15 +101,15 @@ def _return_value(value: Any, data: dict[str, Any], args, kwargs) -> Any:
 def type_checker_float(arg_index: int, kward: str) -> float:
     """
     ## Description:
-        Decorator to check if a function argument is a float or convertible to float.
+        引数が浮動小数点数か浮動小数点数に変換可能かをチェックするデコレーター。
     ## Args:
         arg_index (int):
-            The index of the argument to check if it is a float.
+            位置引数のインデックスを指定。
         kward (str):
-            The keyword argument to check if it is a float.
+            キーワード引数の名前を指定。
     ## Returns:
         float:
-            The float value of the argument.
+            浮動小数点数に変換された引数の値。
     """
 
     def decorator(func):
@@ -130,15 +134,15 @@ def type_checker_float(arg_index: int, kward: str) -> float:
 def type_checker_integer(arg_index: int, kward: str) -> int:
     """
     ## Description:
-        Decorator to check if a function argument is an integer or convertible to integer.
+        関数の引数が整数か、整数に変換可能かをチェックするデコレーター。
     ## Args:
         arg_index (int):
-            The index of the argument to check if it is an integer.
+            位置引数のインデックスを指定。
         kward (str):
-            The keyword argument to check if it is an integer.
+            キーワード引数の名前を指定。
     ## Returns:
         int:
-            The integer value of the argument.
+            整数に変換された引数の値。
     """
 
     def decorator(func):
@@ -163,15 +167,15 @@ def type_checker_integer(arg_index: int, kward: str) -> int:
 def type_checker_datetime(arg_index: int, kward: str) -> datetime.datetime:
     """
     ## Description:
-        Decorator to check if a function argument is a datetime object or a string that can be converted to datetime.
+        関数の引数がdatetimeオブジェクトか、datetimeに変換可能な文字列かをチェックするデコレーター。
     ## Args:
         arg_index (int):
-            The index of the argument to check if it is a datetime.
+            位置引数のインデックスを指定。
         kward (str):
-            The keyword argument to check if it is a datetime.
+            キーワード引数の名前を指定。
     ## Returns:
         datetime.datetime:
-            The datetime object with microseconds set to 0.
+            datetimeオブジェクトに変換された引数の値。
     """
 
     def decorator(func):
@@ -192,15 +196,16 @@ def type_checker_datetime(arg_index: int, kward: str) -> datetime.datetime:
 def type_checker_decimal(arg_index: int, kward: str) -> float:
     """
     ## Description:
-        Decorator to check if a function argument is a decimal or convertible to decimal.
+        関数の引数がDecimalオブジェクトか、Decimalに変換可能な値かをチェックするデコレーター。
+        Decimalは浮動小数点数の精度を保つために使用されます。
     ## Args:
         arg_index (int):
-            The index of the argument to check if it is a decimal.
+            位置引数のインデックスを指定。
         kward (str):
-            The keyword argument to check if it is a decimal.
+            キーワード引数の名前を指定。
     ## Returns:
         float:
-            The decimal value of the argument.
+            Decimalに変換された引数の値。
     """
 
     def decorator(func):
@@ -228,14 +233,13 @@ def type_checker_decimal(arg_index: int, kward: str) -> float:
 def float_formatter(value: int | float | str) -> float:
     """
     ## Description:
-        Function to format a float value.
+        浮動小数点数のフォーマットを統一する関数。
     ## Args:
         value (int | float | str):
-            The value to be formatted as a float.
-            It can be an integer, a float, or a string that can be converted to a float.
+            浮動小数点に変換したい値。
     ## Returns:
         float:
-            The formatted float value.
+            フォーマットされた浮動小数点数。
     """
     return value
 
@@ -244,14 +248,15 @@ def float_formatter(value: int | float | str) -> float:
 def integer_formatter(value: int | float | str) -> int:
     """
     ## Description:
-        Function to format an integer value.
+        整数のフォーマットを統一する関数。
+        引数が整数、浮動小数点数、または整数に変換可能な文字列であることを確認します。
     ## Args:
         value (int | float | str):
-            The value to be formatted as an integer.
-            It can be an integer, a float, or a string that can be converted to an integer.
+            整数に変換したい値。
+            整数、浮動小数点数、または整数に変換可能な文字列を受け入れます。
     ## Returns:
         int:
-            The formatted integer value.
+            フォーマットされた整数。
     """
     return value
 
@@ -259,15 +264,14 @@ def integer_formatter(value: int | float | str) -> int:
 def iterable_float_formatter(values: Iterable) -> list[float]:
     """
     ## Description:
-        Function to format one-dimensional iterable values as a list of floating-point numbers.
+        繰り返し処理可能なオブジェクト内の値を浮動小数点数のリストに変換する関数。
     ## Args:
         values (Iterable):
-            An iterable containing values that can be converted to float.
-            It can be a list, tuple, or any other iterable containing numeric values.
-            However, it must be one-dimensional iterable.
+            一次元の繰り返し可能なオブジェクト。
+            リスト、タプル、または数値を含む他の繰り返し可能なオブジェクトを受け入れます。
     ## Returns:
         list[float]:
-            A list of formatted float values.
+            フォーマットされた浮動小数点数のリスト。
     """
     count = dimensional_count(values)
     assert count == 1, f"Expected one-dimensional iterable, got {count}D iterable."
@@ -277,15 +281,14 @@ def iterable_float_formatter(values: Iterable) -> list[float]:
 def iterable_integer_formatter(values: Iterable) -> list[int]:
     """
     ## Description:
-        Function to format one-dimensional iterable values as a list of integers.
+        繰り返し可能なオブジェクト内の値を整数のリストに変換する関数。
     ## Args:
         values (Iterable):
-            An iterable containing values that can be converted to integer.
-            It can be a list, tuple, or any other iterable containing numeric values.
-            However, it must be one-dimensional iterable.
+            一次元の繰り返し可能なオブジェクト。
+            リスト、タプル、または数値を含む他の繰り返し可能なオブジェクトを受け入れます。
     ## Returns:
         list[int]:
-            A list of formatted integer values.
+            フォーマットされた整数のリスト。
     """
     count = dimensional_count(values)
     assert count == 1, f"Expected one-dimensional iterable, got {count}D iterable."
@@ -295,15 +298,14 @@ def iterable_integer_formatter(values: Iterable) -> list[int]:
 def iterable_decimalize_formatter(values: Iterable) -> list[Decimal]:
     """
     ## Description:
-        Function to format one-dimensional iterable values as a list of Decimal numbers.
+        繰り返し可能なオブジェクト内の値をDecimalのリストに変換する関数。
     ## Args:
         values (Iterable):
-            An iterable containing values that can be converted to Decimal.
-            It can be a list, tuple, or any other iterable containing numeric values.
-            However, it must be one-dimensional iterable.
+            一次元の繰り返し可能なオブジェクト。
+            リスト、タプル、または数値を含む他の繰り返し可能なオブジェクトを受け入れます。
     ## Returns:
         list[Decimal]:
-            A list of formatted Decimal values.
+            フォーマットされたDecimalのリスト。
     """
     count = dimensional_count(values)
     assert count == 1, f"Expected one-dimensional iterable, got {count}D iterable."

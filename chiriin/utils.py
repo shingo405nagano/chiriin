@@ -9,17 +9,19 @@ UniqueIterable = Union[tuple, list, np.ndarray, pd.Series]
 def dimensional_count(value: UniqueIterable) -> int:
     """
     ## Description:
-        Recursively determine the dimensionality of a list.
-    Arguments:
+        オブジェクトがどの程度の次元を持つリストであるかを測定する関数。
+    Args:
         value (tuple | list | np.ndarray | pd.Series):
-            The list to be measured.
+            測定したい値。リスト、タプル、NumPy配列、またはPandas Seriesを受け入れます。
+            それ以外の型（str, int, floatなど）は0次元と見なされます。
     Returns:
-        int: The dimensionality of the list.
-            - 0: The value is not a list. (str, int, float, etc.)
-            - 1: The value is a list.
-            - 2: The value is a list of lists.
-            - 3: The value is a list of lists of lists.
-            - ...
+        int:
+            測定された次元の数を返します。
+            - 0: 値がリストではない場合（str, int, floatなど）。
+            - 1: 1次元の場合。
+            - 2: 2次元の場合。
+            - 3: 3次元の場合。
+            ...
     Examples:
         >>> dimensional_measurement(1)
         0
