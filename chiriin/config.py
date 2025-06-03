@@ -15,7 +15,8 @@ _mag_df = pd.read_csv(
 )
 _mag_df["mesh_code"] = _mag_df["mesh_code"].astype(int).astype(str)
 MAG_DATA: dict[int, float] = {
-    mesh_code: mag_value for mesh_code, mag_value in zip(_mag_df["mesh_code"], _mag_df["mag"], strict=False)
+    mesh_code: mag_value
+    for mesh_code, mag_value in zip(_mag_df["mesh_code"], _mag_df["mag"], strict=False)
 }
 
 
@@ -122,7 +123,9 @@ class SemidynamicCorrectionFiles(object):
                     result.append(txt)
         return result
 
-    def read_file(self, datetime_: datetime.datetime, encoding: str = "utf-8") -> pd.DataFrame:
+    def read_file(
+        self, datetime_: datetime.datetime, encoding: str = "utf-8"
+    ) -> pd.DataFrame:
         """
         ## Description:
             地殻変動補正のパラメーターファイルを読み込む
@@ -141,7 +144,9 @@ class SemidynamicCorrectionFiles(object):
             data = [self._clean_line(line.split(" ")) for line in lines[1:]]
             df = pd.DataFrame(data, columns=headers)
         # Breedte（緯度）Lengte（経度）
-        df = df.rename(columns={"dB(sec)": "delta_y", "dL(sec)": "delta_x", "dH(m)": "delta_z"})
+        df = df.rename(
+            columns={"dB(sec)": "delta_y", "dL(sec)": "delta_x", "dH(m)": "delta_z"}
+        )
         return df.set_index("MeshCode")
 
 
@@ -171,7 +176,10 @@ def semidynamic_correction_file(datetime_: datetime.datetime) -> Optional[pd.Dat
             except UnicodeDecodeError:
                 pass
     except Exception:
-        raise ValueError("Failed to read the file with all encodings.use encofings: " + ", ".join(encodings))  # noqa: B904
+        raise ValueError(  # noqa: B904
+            "Failed to read the file with all encodings.use encofings: "
+            + ", ".join(encodings)
+        )
 
 
 class ChiriinWebApi(object):
@@ -277,6 +285,6 @@ class ChiriinWebApi(object):
             "Hosei_J={dimension}&"  # 2: 2次元補正, 3: 3次元補正
             "longitude={lon}&"
             "latitude={lat}&"
-            "altitude1={alti}&"
+            "altitude1={alti}"
         )
         return url
