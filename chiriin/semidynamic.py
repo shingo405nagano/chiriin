@@ -40,7 +40,9 @@ class SemiDynamic(object):
         """
         count_lon = dimensional_count(self.lon)
         count_lat = dimensional_count(self.lat)
-        assert count_lon == count_lat, "longitude and latitude must have the same dimensionality."
+        assert count_lon == count_lat, (
+            "longitude and latitude must have the same dimensionality."
+        )
         if count_lon == 0:
             self.lon = Decimal(f"{float(self.lon)}")
             self.lat = Decimal(f"{float(self.lat)}")
@@ -99,37 +101,33 @@ class SemiDynamic(object):
         lower_left_sec_lat = n * lat_param
         lower_left_deg_lon = lower_left_sec_lon / 3600
         lower_left_deg_lat = lower_left_sec_lat / 3600
-        try:
-            # Create MeshCode and MeshDesign for lower left corner
-            lower_left_mesh_code = MeshCode(lower_left_deg_lon, lower_left_deg_lat)
-            lower_left_design = MeshDesign(
-                "lower_left",
-                lower_left_sec_lon,
-                lower_left_sec_lat,
-                lower_left_mesh_code.standard_mesh_code,
-            )
-            lower_right_design = self._adjust_mesh_code(
-                lower_left_sec_lon, lower_left_sec_lat, lon_param, 0, "lower_right"
-            )
-            upper_left_design = self._adjust_mesh_code(
-                lower_left_sec_lon, lower_left_sec_lat, 0, lat_param, "upper_left"
-            )
-            upper_right_design = self._adjust_mesh_code(
-                lower_left_sec_lon,
-                lower_left_sec_lat,
-                lon_param,
-                lat_param,
-                "upper_right",
-            )
-        except Exception:
-            return False
-        else:
-            return {
-                "lower_left": lower_left_design,
-                "lower_right": lower_right_design,
-                "upper_left": upper_left_design,
-                "upper_right": upper_right_design,
-            }
+        # Create MeshCode and MeshDesign for lower left corner
+        lower_left_mesh_code = MeshCode(lower_left_deg_lon, lower_left_deg_lat)
+        lower_left_design = MeshDesign(
+            "lower_left",
+            lower_left_sec_lon,
+            lower_left_sec_lat,
+            lower_left_mesh_code.standard_mesh_code,
+        )
+        lower_right_design = self._adjust_mesh_code(
+            lower_left_sec_lon, lower_left_sec_lat, lon_param, 0, "lower_right"
+        )
+        upper_left_design = self._adjust_mesh_code(
+            lower_left_sec_lon, lower_left_sec_lat, 0, lat_param, "upper_left"
+        )
+        upper_right_design = self._adjust_mesh_code(
+            lower_left_sec_lon,
+            lower_left_sec_lat,
+            lon_param,
+            lat_param,
+            "upper_right",
+        )
+        return {
+            "lower_left": lower_left_design,
+            "lower_right": lower_right_design,
+            "upper_left": upper_left_design,
+            "upper_right": upper_right_design,
+        }
 
     def _adjust_mesh_code(
         self,
@@ -182,9 +180,13 @@ class SemiDynamic(object):
                 - upper_right: 右上の補正値
         """
         lower_left_delta = self._get_delta(mesh_designs["lower_left"].standard_mesh_code)
-        lower_right_delta = self._get_delta(mesh_designs["lower_right"].standard_mesh_code)
+        lower_right_delta = self._get_delta(
+            mesh_designs["lower_right"].standard_mesh_code
+        )
         upper_left_delta = self._get_delta(mesh_designs["upper_left"].standard_mesh_code)
-        upper_right_delta = self._get_delta(mesh_designs["upper_right"].standard_mesh_code)
+        upper_right_delta = self._get_delta(
+            mesh_designs["upper_right"].standard_mesh_code
+        )
         return {
             "lower_left": lower_left_delta,
             "lower_right": lower_right_delta,
@@ -217,7 +219,9 @@ class SemiDynamic(object):
 
     @type_checker_decimal(arg_index=1, kward="lon")
     @type_checker_decimal(arg_index=2, kward="lat")
-    def _calc_correction_2d_delta(self, lon: float, lat: float, return_to_original: bool = True) -> XY:
+    def _calc_correction_2d_delta(
+        self, lon: float, lat: float, return_to_original: bool = True
+    ) -> XY:
         """
         ## Description:
             経緯度（10進法）を受け取り、セミダイナミック補正を行う。
