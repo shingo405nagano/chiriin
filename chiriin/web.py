@@ -284,3 +284,156 @@ def fetch_corrected_semidynamic_from_web(
     sorted_keys = sorted(_data.keys())
     sorted_coords = [_data[key] for key in sorted_keys]
     return sorted_coords
+
+
+# ***********************************************************************
+# **************** 地理院APIで距離と方位角を計算する ***********************
+# ***********************************************************************
+
+
+async def fetch_distance_and_azimuth(
+    session: aiohttp.client.ClientSession,
+    index: int,
+    lon1: float,
+    lat1: float,
+    lon2: float,
+    lat2: float,
+    ellipsoid: str = "GRS80",
+    max_retry: int = 5,
+    time_out: int = 10,
+) -> dict[int, tuple[float, float]]:
+    """
+    ## Description:
+        地理院APIで2点間の距離と方位角を計算する
+    Args:
+        session(aiohttp.client.ClientSession): セッション
+        index(int): インデックス
+        lon1(float): 1点目の経度
+        lat1(float): 1点目の緯度
+        lon2(float): 2点目の経度
+        lat2(float): 2点目の緯度
+        ellipsoid(str): 楕円体。'GRS80'は世界測地系、'bessel'は日本測地系
+        max_retry(int): リトライ回数
+        time_out(int): タイムアウト
+    Returns:
+        dict[int, tuple[float, float]]: {index: (distance, azimuth)}
+            - distance: 距離 (m)
+            - azimuth: 方位角 (度)
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"
+    }
+    url = chiriin_web_api.distance_and_azimuth_url().format(
+        ellipsoid=ellipsoid, lon1=lon1, lat1=lat1, lon2=lon2, lat2=lat2
+    )
+    for _ in range(max_retry):
+        try:
+            async with session.get(url, headers=headers, timeout=time_out) as response:
+                data = await response.json()
+                if data.get("ErrMsg") is None:
+                    data = data.get("OutputData")
+                    distance = float(data["geoLength"])
+                    azimuth = float(data["azimuth1"])
+                    print(
+                        f"Idx: {index}  距離: {distance}m, 方位角: {azimuth}度\n"
+                        f"(lon1: {lon1}, lat1: {lat1}, lon2: {lon2}, lat2: {lat2})"
+                    )
+                    return {index: {"distance": distance, "azimuth": azimuth}}
+                else:
+                    print(f"サーバーが混みあっています。ErrMsg: {data.get('ErrMsg')}")
+        except aiohttp.ClientError:
+            print(
+                f"リクエストに失敗しました (Index: {index}, lon1: {lon1}, lat1: {lat1}, "
+                f"lon2: {lon2}, lat2: {lat2})。再試行中..."
+            )
+    return {index: None}
+
+
+async def fetch_distance_and_azimuth_main(
+    idxs: list[int],
+    lons1: list[float],
+    lats1: list[float],
+    lons2: list[float],
+    lats2: list[float],
+    ellipsoid: str = "GRS80",
+    time_sleep: int = 10,
+) -> list[dict[int, tuple[float, float]]]:
+    """
+    ## Description:
+        地理院APIで2点間の距離と方位角を計算するメイン処理
+    Args:
+        idxs(list[int]): インデックス
+        lons1(list[float]): 1点目の経度
+        lats1(list[float]): 1点目の緯度
+        lons2(list[float]): 2点目の経度
+        lats2(list[float]): 2点目の緯度
+        ellipsoid(str): 楕円体。'GRS80'は世界測地系、'bessel'は日本測地系
+        time_sleep(int): 待ち時間。地理院APIのリクエスト制限による
+    Returns:
+        list[dict[int, tuple[float, float]]]: [{index: (distance, azimuth)}]
+            - distance: 距離 (m)
+            - azimuth: 方位角 (度)
+    """
+    results = []
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for idx, lon1, lat1, lon2, lat2 in zip(
+            idxs, lons1, lats1, lons2, lats2, strict=False
+        ):
+            task = fetch_distance_and_azimuth(
+                session=session,
+                index=idx,
+                lon1=lon1,
+                lat1=lat1,
+                lon2=lon2,
+                lat2=lat2,
+                ellipsoid=ellipsoid,
+            )
+            tasks.append(task)
+            if len(tasks) == 10:
+                results += await asyncio.gather(*tasks)
+                tasks = []
+                time.sleep(time_sleep)
+        if tasks:
+            results += await asyncio.gather(*tasks)
+    return results
+
+
+def fetch_distance_and_azimuth_from_web(
+    lons1: list[float],
+    lats1: list[float],
+    lons2: list[float],
+    lats2: list[float],
+    ellipsoid: str = "GRS80",
+) -> list[tuple[float, float]]:
+    """
+    ## Description:
+        非同期処理により、地理院APIで2点間の距離と方位角を計算する
+    Args:
+        lons1(list[float]): 1点目の10進経度
+        lats1(list[float]): 1点目の10進緯度
+        lons2(list[float]): 2点目の10進経度
+        lats2(list[float]): 2点目の10進緯度
+        ellipsoid(str): 楕円体。'GRS80'は世界測地系、'bessel'は日本測地系
+    Returns:
+        list[tuple[float, float]]: 距離と方位角のリスト [(distance, azimuth), ...]
+            - distance: 距離 (m)
+            - azimuth: 方位角 (度)
+    """
+    idxs = list(range(len(lons1)))
+    resps_lst = asyncio.run(
+        fetch_distance_and_azimuth_main(
+            idxs=idxs,
+            lons1=lons1,
+            lats1=lats1,
+            lons2=lons2,
+            lats2=lats2,
+            ellipsoid=ellipsoid,
+        )
+    )
+    _data = {}
+    for resp in resps_lst:
+        _data.update(resp)
+    sorted_keys = sorted(_data.keys())
+    sorted_distance_azimuth = [_data[key] for key in sorted_keys]
+    return sorted_distance_azimuth
