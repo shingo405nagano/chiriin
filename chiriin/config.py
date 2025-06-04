@@ -8,7 +8,7 @@ import pandas as pd
 
 from chiriin.formatter import datetime_formatter
 
-# 地磁気値（偏角）のデータを読み込んで辞書型に変換。辞書のキーは第二次メッシュコード（int型）
+# 地磁気値（偏角）のデータを読み込み辞書型に変換。辞書のキーは整数型の第二次メッシュコード
 _mag_df = pd.read_csv(
     os.path.join(os.path.dirname(__file__), "data", "mag_2020.csv"),
     dtype={"mesh_code": int, "mag": float},
@@ -99,7 +99,8 @@ class SemidynamicCorrectionFiles(object):
             >>> line = ['MeshCode', 'dB(sec)', '', 'dL(sec)', 'dH(m)\n']
             >>> xxx._clean_line(line)
             ['MeshCode', 'dB(sec)', 'dL(sec)', 'dH(m)']
-            >>> line = ['36230600', '', '-0.05708', '', '', '0.04167', '', '', '0.05603\n']
+            >>> line = ['36230600', '', '-0.05708', '', '',
+                        '0.04167', '', '', '0.05603\n']
             >>> xxx._clean_line(line)
             ['36230600', -0.05708, 0.04167, 0.05603]
         """
@@ -159,8 +160,9 @@ def semidynamic_correction_file(datetime_: datetime.datetime) -> Optional[pd.Dat
             補正値を取得したい日時
     ## Returns:
         pd.DataFrame:
-            補正値のデータフレーム。{index(int): MeshCode, columns: delta_x, delta_y, delta_z}
+            補正値のデータフレーム。
             補正値は秒単位の値なので、10進法で表現する時は3600で割る必要がある。
+            {index(int): MeshCode, columns: delta_x, delta_y, delta_z}
     ## Raises:
         RuntimeError:
             ファイルの読み込みに失敗した場合
@@ -259,10 +261,10 @@ class ChiriinWebApi(object):
         url = (
             "http://vldb.gsi.go.jp/sokuchi/surveycalc/surveycalc/bl2st_calc.pl?"
             "outputType=json&"
-            "ellipsoid={ellipsoid}"
-            "longitude1={lon1}"
-            "latitude1={lat1}"
-            "longitude2={lon2}"
+            "ellipsoid={ellipsoid}&"
+            "longitude1={lon1}&"
+            "latitude1={lat1}&"
+            "longitude2={lon2}&"
             "latitude2={lat2}"
         )
         return url
