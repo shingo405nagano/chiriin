@@ -5,7 +5,7 @@ from typing import Iterable, Optional, Union
 import numpy as np
 import pandas as pd
 
-from chiriin.config import XY, Delta, MeshDesign, semidynamic_correction_file
+from chiriin.config import XY, XYZ, Delta, MeshDesign, semidynamic_correction_file
 from chiriin.formatter import (
     datetime_formatter,
     iterable_decimalize_formatter,
@@ -13,6 +13,7 @@ from chiriin.formatter import (
 )
 from chiriin.mesh import MeshCode
 from chiriin.utils import dimensional_count
+from chiriin.web import fetch_corrected_semidynamic_from_web
 
 
 class SemiDynamic(object):
@@ -247,9 +248,9 @@ class SemiDynamic(object):
 
     @type_checker_decimal(arg_index=1, kward="lon")
     @type_checker_decimal(arg_index=2, kward="lat")
-    def _calc_correction_2d_delta(
+    def _calc_correction_delta(
         self, lon: float, lat: float, return_to_original: bool = True
-    ) -> XY:
+    ) -> Delta:
         """
         ## Description:
             経緯度（10進法）を受け取り、セミダイナミック補正を行う。
@@ -397,7 +398,7 @@ class SemiDynamic(object):
         Returns:
         """
         if not self._is_iterable:
-            delta = self._calc_correction_2d_delta(self.lon, self.lat, return_to_original)
+            delta = self._calc_correction_delta(self.lon, self.lat, return_to_original)
             corrected_lon = float(self.lon + (delta.delta_x / 3600))
             corrected_lat = float(self.lat + (delta.delta_y / 3600))
             return XY(x=corrected_lon, y=corrected_lat)
@@ -407,12 +408,72 @@ class SemiDynamic(object):
         for lon, lat in zip(self.lon, self.lat, strict=True):
             mesh_code = MeshCode(float(lon), float(lat)).standard_mesh_code
             if mesh_code is None:
-                delta = self._calc_correction_2d_delta(lon, lat, return_to_original)
+                delta = self._calc_correction_delta(lon, lat, return_to_original)
                 previous_mesh_code = mesh_code
             elif mesh_code != previous_mesh_code:
-                delta = self._calc_correction_2d_delta(lon, lat, return_to_original)
+                delta = self._calc_correction_delta(lon, lat, return_to_original)
                 previous_mesh_code = mesh_code
             corrected_lon = lon + (delta.delta_x / 3600)
             corrected_lat = lat + (delta.delta_y / 3600)
             lst.append(XY(x=float(corrected_lon), y=float(corrected_lat)))
         return lst
+
+    def correction_2d_with_web_api(self, return_to_original: bool = True):
+        """
+        ## Description:
+            経緯度に対してセミダイナミック補正を行う。補正パラメーターの適用年はインスタンス化時に指定されたdatetime_に基づく。
+            補正値をWeb APIから取得します。
+        Args:
+            return_to_original (bool, optional):
+                Trueは今期から元期への補正を行う。Falseは元期から今期への補正を行う。
+                デフォルトはTrue。
+        Returns:
+            XY | list[XY]:
+                補正後の経度と緯度を含むXYオブジェクトまたはXYオブジェクトのリスト。
+        """
+        dimensional = dimensional_count(self.lon)
+        iterable = 0 < dimensional
+        lons = self.lon if iterable else [self.lon]
+        lats = self.lat if iterable == 1 else [self.lat]
+        resps = fetch_corrected_semidynamic_from_web(
+            correction_datetime=self.datetime,
+            lons=lons,
+            lats=lats,
+            dimension=2,
+            return_to_original=return_to_original,
+        )
+        if iterable:
+            return [XY(x=resp.x, y=resp.y) for resp in resps]
+        return XY(x=resps[0].x, y=resps[0].y)
+
+    def correction_3d_with_web_api(
+        self, return_to_original: bool = True
+    ) -> XY | list[XY]:
+        """
+        ## Description:
+            経緯度と標高に対してセミダイナミック補正を行う。補正パラメーターの適用年はインスタンス化時に指定されたdatetime_に基づく。
+            補正値をWeb APIから取得します。
+        Args:
+            return_to_original (bool, optional):
+                Trueは今期から元期への補正を行う。Falseは元期から今期への補正を行う。
+                デフォルトはTrue。
+        Returns:
+            XY | list[XY]:
+                補正後の経度、緯度、標高を含むXYオブジェクトまたはXYオブジェクトのリスト。
+        """
+        dimensional = dimensional_count(self.lon)
+        iterable = 0 < dimensional
+        lons = self.lon if iterable else [self.lon]
+        lats = self.lat if iterable == 1 else [self.lat]
+        alts = self.altitude if iterable else [self.altitude]
+        resps = fetch_corrected_semidynamic_from_web(
+            correction_datetime=self.datetime,
+            lons=lons,
+            lats=lats,
+            altis=alts,
+            dimension=3,
+            return_to_original=return_to_original,
+        )
+        if iterable:
+            return [XYZ(x=resp.x, y=resp.y, z=resp.z) for resp in resps]
+        return XYZ(x=resps[0].x, y=resps[0].y, z=resps[0].z)
