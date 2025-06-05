@@ -2,6 +2,7 @@ import datetime
 from decimal import Decimal
 from typing import Iterable, Optional, Union
 
+import numpy as np
 import pandas as pd
 
 from chiriin.config import XY, Delta, MeshDesign, semidynamic_correction_file
@@ -210,12 +211,39 @@ class SemiDynamic(object):
         try:
             row = self._param_df.loc[int(mesh_code)]
         except KeyError:
-            raise KeyError(f"Mesh code {mesh_code} not found in parameters.")  # noqa: B904
+            print(f"Mesh code {mesh_code} not found in parameters.")
+            row = {
+                "delta_x": None,
+                "delta_y": None,
+                "delta_z": None,
+            }
+            return Delta(**row)
         return Delta(
             delta_x=Decimal(f"{row['delta_x']}"),
             delta_y=Decimal(f"{row['delta_y']}"),
             delta_z=Decimal(f"{row['delta_z']}"),
         )
+
+    def _fill_delta_zero(self, delta_sets: dict[str, Delta]) -> dict[str, Delta]:
+        """
+        ## Description:
+            補正値が取得出来なかった場合、他の補正値の平均で埋める。
+        Args:
+            delta_sets (dict[str, Delta]):
+                補正値のセット。
+        Returns:
+            dict[str, Delta]:
+                ゼロで埋められた補正値のセット。
+        """
+        # DataFrame化
+        delta_df = pd.DataFrame(delta_sets)
+        # 欠損値を平均値で埋める
+        delta_df = delta_df.T.fillna(delta_df.T.mean()).T
+        delta_sets["lower_left"] = Delta(*delta_df["lower_left"])
+        delta_sets["lower_right"] = Delta(*delta_df["lower_right"])
+        delta_sets["upper_left"] = Delta(*delta_df["upper_left"])
+        delta_sets["upper_right"] = Delta(*delta_df["upper_right"])
+        return delta_sets
 
     @type_checker_decimal(arg_index=1, kward="lon")
     @type_checker_decimal(arg_index=2, kward="lat")
@@ -249,6 +277,9 @@ class SemiDynamic(object):
         upper_left_design = mesh_designs["upper_left"]
         # Delta(delta_x, delta_y, delta_z)
         delta_sets = self._get_delta_sets(mesh_designs)
+        if None in np.array([delta for delta in delta_sets.values()]).flatten().tolist():
+            # 欠損値がある場合は、他の補正値の平均で埋める
+            delta_sets = self._fill_delta_zero(delta_sets)
         lower_left_delta = delta_sets["lower_left"]
         lower_right_delta = delta_sets["lower_right"]
         upper_left_delta = delta_sets["upper_left"]
