@@ -1,9 +1,16 @@
 from decimal import Decimal
 
 import pytest
+import shapely
 
 from chiriin.config import XY
-from chiriin.geometries import degree_to_dms, degree_to_dms_lonlat, dms_to_degree, dms_to_degree_lonlat
+from chiriin.geometries import (
+    degree_to_dms,
+    degree_to_dms_lonlat,
+    dms_to_degree,
+    dms_to_degree_lonlat,
+    transform_geometry,
+)
 
 DMS1_LON = 1403906.4277
 DEG1_LON = 140.651785472
@@ -37,7 +44,13 @@ def test_dms_to_degree(dms, digits, decimal_obj, expected):
     "lon, lat, digits, decimal_obj, expected",
     [
         (DMS1_LON, DMS1_LAT, 9, False, XY(x=DEG1_LON, y=DEG1_LAT)),
-        (DMS1_LON, DMS1_LAT, 9, True, XY(x=Decimal(f"{DEG1_LON}"), y=Decimal(f"{DEG1_LAT}"))),
+        (
+            DMS1_LON,
+            DMS1_LAT,
+            9,
+            True,
+            XY(x=Decimal(f"{DEG1_LON}"), y=Decimal(f"{DEG1_LAT}")),
+        ),
         ([DMS1_LON], [DMS1_LAT], 9, False, [XY(x=DEG1_LON, y=DEG1_LAT)]),
     ],
 )
@@ -103,3 +116,24 @@ def test_degree_to_lonlat(lon, lat, digits, decimal_obj, expected):
         if not decimal_obj:
             assert result.x == pytest.approx(expected[0], rel=1 * 10**-digits)
             assert result.y == pytest.approx(expected[1], rel=1 * 10**-digits)
+
+
+@pytest.mark.parametrize(
+    "geometry, in_crs, out_crs",
+    [
+        (shapely.Point(140.651785472, 40.85253225), "EPSG:4326", "EPSG:3857"),
+        (
+            shapely.Point(140.651785472, 40.85253225).buffer(0.1).envelope,
+            "EPSG:4326",
+            "EPSG:6678",
+        ),
+    ],
+)
+def test_transform_geometry(geometry, in_crs, out_crs):
+    """Test the transformation of geometries between coordinate reference systems."""
+    transformed_geometry = transform_geometry(geometry, in_crs, out_crs)
+    assert isinstance(transformed_geometry, shapely.geometry.base.BaseGeometry)
+    assert geometry != transformed_geometry, "Geometry should be transformed."
+    # Test with invalid CRS
+    with pytest.raises(Exception):  # noqa: B017
+        transform_geometry(geometry, "invalid_crs", out_crs)

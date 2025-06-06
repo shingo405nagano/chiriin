@@ -7,7 +7,11 @@
 from decimal import Decimal
 from typing import Iterable
 
+import pyproj
+import shapely
+
 from chiriin.config import XY
+from chiriin.formatter import type_checker_crs, type_checker_shapely
 from chiriin.utils import dimensional_count
 
 
@@ -291,3 +295,38 @@ def degree_to_dms_lonlat(
     if isinstance(lon, Iterable):
         return _degree_to_dms_lonlat_list(lon, lat, digits, decimal_obj)  # type: ignore
     return _degree_to_dms_lonlat(lon, lat, digits, decimal_obj)  # type: ignore
+
+
+@type_checker_shapely(arg_index=0, kward="geometry")
+@type_checker_crs(arg_index=1, kward="in_crs")
+@type_checker_crs(arg_index=2, kward="out_crs")
+def transform_geometry(
+    geometry: shapely.geometry.base.BaseGeometry,
+    in_crs: str | int | pyproj.CRS,
+    out_crs: str | int | pyproj.CRS,
+) -> shapely.geometry.base.BaseGeometry:
+    """
+    ## Summary:
+        指定した座標系から別の座標系にジオメトリを変換する。
+    ## Args:
+        geometry (shapely.geometry.base.BaseGeometry):
+            変換するジオメトリ。shapelyのBaseGeometryオブジェクト。
+        in_crs (str | int | pyproj.CRS):
+            入力座標系。EPSGコードやCRSオブジェクトを指定。
+        out_crs (str | int | pyproj.CRS):
+            出力座標系。EPSGコードやCRSオブジェクトを指定。
+    ## Returns:
+        shapely.geometry.base.BaseGeometry:
+            変換後のジオメトリ。shapelyのBaseGeometryオブジェクト。
+    """
+    transformer = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True)
+    try:
+        transformed_geom = shapely.transform(
+            geometry, transformer.transform, interleaved=False
+        )
+    except Exception:
+        try:
+            transformed_geom = shapely.ops.transform(transformer.transform, geometry)
+        except ValueError as e:  # noqa: E722
+            raise ValueError(f"Failed to transform geometry: {e}") from e
+    return transformed_geom
