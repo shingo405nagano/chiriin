@@ -6,7 +6,6 @@ from typing import NamedTuple, Optional
 
 import pandas as pd
 import pyproj
-import shapely
 
 from chiriin.formatter import datetime_formatter, type_checker_integer
 
@@ -317,8 +316,8 @@ class TileInfo(NamedTuple):
     """
 
     zoom_level: int
-    x: int
-    y: int
+    x_idx: int
+    y_idx: int
     tile_scope: TileScope
     x_resolution: float
     y_resolution: float

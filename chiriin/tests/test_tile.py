@@ -81,15 +81,13 @@ def test_tile_info_from_xy():
     crs = "EPSG:4326"
     preview_x_resol = 0
     preview_y_resol = 0
-    preview_width = 0
-    preview_height = 0
     for zl in sorted(list(range(0, 20)), reverse=True):
         tile_info = search_tile_info_from_xy(lon, lat, zl, in_crs=crs)
         assert isinstance(tile_info, TileInfo)
         assert preview_x_resol < tile_info.x_resolution
         assert preview_y_resol < tile_info.y_resolution
-        assert preview_width < tile_info.width
-        assert preview_height < tile_info.height
+        preview_x_resol = tile_info.x_resolution
+        preview_y_resol = tile_info.y_resolution
 
 
 def test_tile_info_from_geometry():

@@ -92,10 +92,13 @@ def _search_tile_index(search_value: float, values: list[float]) -> int:
             検索対象の値のリスト。値は昇順にソートされている必要があります。
     """
     for i, (left, right) in enumerate(zip(values[:-1], values[1:], strict=True)):
-        if left <= search_value < right:
+        min_ = min(left, right)
+        max_ = max(left, right)
+        if min_ <= search_value < max_:
             return i
     raise ValueError(
-        f"Value {search_value} is out of bounds for the provided values: {values}"
+        f"Value {search_value} is out of bounds for the provided values:"
+        f"min={min(values)}, max={max(values)}"
     )
 
 
@@ -103,10 +106,7 @@ def _search_tile_index(search_value: float, values: list[float]) -> int:
 @type_checker_float(arg_index=1, kward="y")
 @type_checker_crs(arg_index=3, kward="in_crs")
 def search_tile_info_from_xy(
-    x: float,
-    y: float,
-    zoom_level: int,
-    in_crs: str | int | pyproj.CRS,
+    x: float, y: float, zoom_level: int, in_crs: str | int | pyproj.CRS, **kwargs
 ) -> TileInfo:
     """
     ## Summary:
@@ -123,11 +123,14 @@ def search_tile_info_from_xy(
         in_crs(str | int | pyproj.CRS):
             入力座標系を指定するオプションの引数。
             指定しない場合は、経緯度（EPSG:4326）として解釈されます。
+        **kwargs:
+            - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+            - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
     Returns:
         TileInfo:
             指定された座標とズームレベルに対応するタイルの情報を含むTileInfoオブジェクト。
-            - x(int): タイルのx座標
-            - y(int): タイルのy座標
+            - x_idx(int): タイルのx座標
+            - y_idx(int): タイルのy座標
             - zoom_level(int): ズームレベル
             - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
                                     を含むTileScopeオブジェクト
@@ -138,13 +141,30 @@ def search_tile_info_from_xy(
             - in_crs(pyproj.CRS): 入力座標系を表すpyproj.CRSオブジェクト。
                                   デフォルトはEPSG:3857（Web Mercator）です。
     """
+    if in_crs.to_epsg() != 3857:
+        # 入力座標系がWeb Mercatorでない場合、変換を行う
+        transformer = pyproj.Transformer.from_crs(in_crs, "EPSG:3857", always_xy=True)
+        x, y = transformer.transform(x, y)
+    tile_cds = cut_off_points(zoom_level)
+    x_idx = _search_tile_index(x, tile_cds["X"])
+    y_idx = _search_tile_index(y, tile_cds["Y"])
+    tile_scope = TileScope(
+        x_min=tile_cds["X"][x_idx],
+        y_min=tile_cds["Y"][y_idx + 1],
+        x_max=tile_cds["X"][x_idx + 1],
+        y_max=tile_cds["Y"][y_idx],
+    )
+    width = kwargs.get("width", 256)
+    height = kwargs.get("height", 256)
+    x_resolution = (tile_scope.x_max - tile_scope.x_min) / width
+    y_resolution = (tile_scope.y_max - tile_scope.y_min) / height
     return TileInfo(
-        x=0,
-        y=0,
+        x_idx=x_idx,
+        y_idx=y_idx,
         zoom_level=zoom_level,
-        tile_scope=TileScope(x_min=0, y_min=0, x_max=0, y_max=0),
-        x_resolution=0.0,
-        y_resolution=0.0,
+        tile_scope=tile_scope,
+        x_resolution=round(x_resolution, 4),
+        y_resolution=round(y_resolution, 4),
     )
 
 
