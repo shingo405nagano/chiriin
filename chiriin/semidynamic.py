@@ -448,7 +448,7 @@ class SemiDynamic(object):
 
     def correction_3d_with_web_api(
         self, return_to_original: bool = True
-    ) -> XY | list[XY]:
+    ) -> XYZ | list[XYZ]:
         """
         ## Description:
             経緯度と標高に対してセミダイナミック補正を行う。補正パラメーターの適用年はインスタンス化時に指定されたdatetime_に基づく。
