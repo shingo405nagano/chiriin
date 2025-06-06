@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 
 import pytest
 
@@ -9,8 +10,10 @@ from chiriin.formatter import (
     iterable_float_formatter,
     iterable_integer_formatter,
     type_checker_datetime,
+    type_checker_decimal,
     type_checker_float,
     type_checker_integer,
+    type_checker_iterable,
 )
 
 
@@ -112,6 +115,49 @@ def test_type_checker_datetime(datetime_, success):
     else:
         with pytest.raises((ValueError, TypeError)):
             dummy_function(datetime_)
+
+
+@pytest.mark.parametrize(
+    "value, success",
+    [
+        (1, True),
+        (1.0, True),
+        ("1", True),
+        ("10-", False),
+    ],
+)
+def test_type_checker_decimal(value, success):
+    @type_checker_decimal(arg_index=0, kward="value")
+    def dummy_function(value: float):
+        return value
+
+    if success:
+        result = dummy_function(value)
+        assert isinstance(result, Decimal)
+    else:
+        with pytest.raises(Exception):  # noqa: B017
+            dummy_function(value)
+
+
+@pytest.mark.parametrize(
+    "value, success",
+    [
+        (1, True),
+        ([1, 2, 3], True),
+        ([[1, 2], [3, 4]], False),
+    ],
+)
+def test_type_checker_iterable(value, success):
+    @type_checker_iterable(arg_index=0, kward="value")
+    def dummy_function(value: list):
+        return value
+
+    if success:
+        result = dummy_function(value)
+        assert isinstance(result, list)
+    else:
+        with pytest.raises(Exception):  # noqa: B017
+            dummy_function(value)
 
 
 @pytest.mark.parametrize("value", [100, 100.0, "100"])

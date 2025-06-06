@@ -222,13 +222,50 @@ def type_checker_decimal(arg_index: int, kward: str):
                 return func(*args, **kwargs)
             try:
                 value = Decimal(f"{float(value)}")
-            except Exception:
+            except Exception as e:
                 raise TypeError(
-                    f"Argument '{kward}' must be a decimal or convertible to decimal, got {type(value)}"
-                )  # noqa: B904
+                    f"Argument '{kward}' must be a decimal or convertible to "
+                    "decimal, got {type(value)}"
+                ) from e
             else:
                 result = _return_value(value, data, args, kwargs)
                 return func(*result["args"], **result["kwargs"])
+
+        return wrapper
+
+    return decorator
+
+
+def type_checker_iterable(arg_index: int, kward: str):
+    """
+    ## Description:
+        関数の引数が一次元の繰り返し可能なオブジェクトかをチェックするデコレーター。
+    ## Args:
+        arg_index (int):
+            位置引数のインデックスを指定。
+        kward (str):
+            キーワード引数の名前を指定。
+    ## Returns:
+        Iterable:
+            一次元の繰り返し可能なオブジェクト。
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            data = _intermediate(arg_index, kward, *args, **kwargs)
+            data["arg_index"] = arg_index
+            data["kward"] = kward
+            value = data["value"]
+            count = dimensional_count(value)
+            if count == 0:
+                value = [value]
+            elif count != 1:
+                raise TypeError(
+                    f"Argument '{kward}' must be a one-dimensional iterable, "
+                    f"got {count}D iterable."
+                )
+            result = _return_value(value, data, args, kwargs)
+            return func(*result["args"], **result["kwargs"])
 
         return wrapper
 
