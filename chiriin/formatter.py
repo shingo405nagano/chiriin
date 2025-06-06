@@ -352,51 +352,6 @@ def type_checker_shapely(arg_index: int, kward: str):
     return decorator
 
 
-def type_checker_zoom_level(
-    arg_index: int, kward: str, min_zl: int = 0, max_zl: int = 24
-):
-    """
-    ## Description:
-        関数の引数がズームレベルを表す整数か、整数に変換可能かをチェックするデコレーター。
-    ## Args:
-        arg_index (int):
-            位置引数のインデックスを指定。
-        kward (str):
-            キーワード引数の名前を指定。
-        min_zl (int):
-            ズームレベルの最小値。デフォルトは0。
-        max_zl (int):
-            ズームレベルの最大値。デフォルトは24。
-    ## Returns:
-        int:
-            ズームレベルに変換された引数の値。
-    """
-
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            data = _intermediate(arg_index, kward, *args, **kwargs)
-            data["arg_index"] = arg_index
-            data["kward"] = kward
-            value = data["value"]
-            try:
-                value = int(value)
-                if not (min_zl <= value <= max_zl):
-                    raise ValueError(
-                        f"Zoom level must be between {min_zl} and {max_zl}, got {value}"
-                    )
-            except Exception as e:
-                raise TypeError(
-                    f"Argument '{kward}' must be an integer or convertible to integer, got {type(value)}"
-                ) from e
-            else:
-                result = _return_value(value, data, args, kwargs)
-                return func(*result["args"], **result["kwargs"])
-
-        return wrapper
-
-    return decorator
-
-
 @type_checker_float(arg_index=0, kward="value")
 def float_formatter(value: int | float | str) -> float:
     """
