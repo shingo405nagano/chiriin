@@ -5,6 +5,8 @@ from glob import glob
 from typing import NamedTuple, Optional
 
 import pandas as pd
+import pyproj
+import shapely
 
 from chiriin.formatter import datetime_formatter, type_checker_integer
 
@@ -299,6 +301,30 @@ class ChiriinWebApi(object):
             "altitude1={alti}"
         )
         return url
+
+
+class TileScope(NamedTuple):
+    x_min: float = -20037508.342789244
+    y_min: float = -20037508.342789244
+    x_max: float = 20037508.342789244
+    y_max: float = 20037508.342789244
+
+
+class TileInfo(NamedTuple):
+    """
+    ## Description:
+        タイルの情報を格納するクラス。
+    """
+
+    zoom_level: int
+    x: int
+    y: int
+    tile_scope: TileScope
+    x_resolution: float
+    y_resolution: float
+    width: int = 256
+    height: int = 256
+    crs: pyproj.CRS = pyproj.CRS.from_epsg(3857)
 
 
 class ElevationTileUrl(object):
