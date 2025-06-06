@@ -2,6 +2,9 @@ import datetime
 from decimal import Decimal
 from typing import Any, Iterable
 
+import pyproj
+import shapely
+
 from chiriin.utils import dimensional_count
 
 
@@ -266,6 +269,80 @@ def type_checker_iterable(arg_index: int, kward: str):
                 )
             result = _return_value(value, data, args, kwargs)
             return func(*result["args"], **result["kwargs"])
+
+        return wrapper
+
+    return decorator
+
+
+def type_checker_crs(arg_index: int, kward: str):
+    """
+    ## Description:
+        関数の引数がpyproj.CRSオブジェクトか、CRSに変換可能な文字列かをチェックするデコレーター。
+    ## Args:
+        arg_index (int):
+            位置引数のインデックスを指定。
+        kward (str):
+            キーワード引数の名前を指定。
+    ## Returns:
+        pyproj.CRS:
+            CRSオブジェクトに変換された引数の値。
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            data = _intermediate(arg_index, kward, *args, **kwargs)
+            data["arg_index"] = arg_index
+            data["kward"] = kward
+            value = data["value"]
+            if isinstance(value, pyproj.CRS):
+                return func(*args, **kwargs)
+            try:
+                value = pyproj.CRS(value)
+            except Exception as e:
+                raise TypeError(
+                    f"Argument '{kward}' must be a CRS or convertible to CRS, got {type(value)}"
+                ) from e
+            else:
+                result = _return_value(value, data, args, kwargs)
+                return func(*result["args"], **result["kwargs"])
+
+        return wrapper
+
+    return decorator
+
+
+def type_checker_shapely(arg_index: int, kward: str):
+    """
+    ## Description:
+        関数の引数がshapelyオブジェクトか、shapelyに変換可能な値かをチェックするデコレーター。
+    ## Args:
+        arg_index (int):
+            位置引数のインデックスを指定。
+        kward (str):
+            キーワード引数の名前を指定。
+    ## Returns:
+        shapely.geometry.base.BaseGeometry:
+            shapelyオブジェクトに変換された引数の値。
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            data = _intermediate(arg_index, kward, *args, **kwargs)
+            data["arg_index"] = arg_index
+            data["kward"] = kward
+            value = data["value"]
+            if shapely.is_geometry(value):
+                return func(*args, **kwargs)
+            try:
+                value = shapely.from_wkt(value)
+            except Exception as e:
+                raise TypeError(
+                    f"Argument '{kward}' must be a shapely object or convertible to shapely, got {type(value)}"
+                ) from e
+            else:
+                result = _return_value(value, data, args, kwargs)
+                return func(*result["args"], **result["kwargs"])
 
         return wrapper
 

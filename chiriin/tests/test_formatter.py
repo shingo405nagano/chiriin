@@ -1,19 +1,24 @@
 import datetime
 from decimal import Decimal
 
+import pyproj
 import pytest
+import shapely
 
 from chiriin.formatter import (
     datetime_formatter,
     float_formatter,
     integer_formatter,
+    iterable_decimalize_formatter,
     iterable_float_formatter,
     iterable_integer_formatter,
+    type_checker_crs,
     type_checker_datetime,
     type_checker_decimal,
     type_checker_float,
     type_checker_integer,
     type_checker_iterable,
+    type_checker_shapely,
 )
 
 
@@ -217,3 +222,61 @@ def test_iterable_integer_formatter(value, success):
     else:
         with pytest.raises(Exception):  # noqa: B017
             iterable_integer_formatter(value)
+
+
+@pytest.mark.parametrize(
+    "crs, success",
+    [
+        ("EPSG:4326", True),
+        ("EPSG:3857", True),
+        ("invalid_crs", False),
+        (6678, True),
+        (pyproj.CRS.from_epsg(4326), True),
+    ],
+)
+def test_type_checker_crs(crs, success):
+    """Test type_checker_crs function."""
+
+    @type_checker_crs(arg_index=0, kward="crs")
+    def dummy_function(crs: pyproj.CRS):
+        return crs
+
+    if success:
+        result = dummy_function(crs)
+        assert isinstance(result, pyproj.CRS)
+    else:
+        with pytest.raises(Exception):  # noqa: B017
+            dummy_function(crs)
+
+
+@pytest.mark.parametrize(
+    "value, success",
+    [
+        (shapely.geometry.Point(1, 2), True),
+        (shapely.geometry.LineString([(0, 0), (1, 1)]), True),
+        (shapely.geometry.Polygon([(0, 0), (1, 1), (1, 0)]), True),
+        ("invalid_shape", False),
+        ("POINT (0 0)", True),
+    ],
+)
+def test_type_checker_shapely(value, success):
+    """Test type_checker_shapely function."""
+
+    @type_checker_shapely(arg_index=0, kward="value")
+    def dummy_function(value):
+        return value
+
+    if success:
+        result = dummy_function(value)
+        assert shapely.is_geometry(result)
+    else:
+        with pytest.raises(Exception):  # noqa: B017
+            dummy_function(value)
+
+
+def test_iterable_decimalize_formatter():
+    """Test iterable_decimalize_formatter function."""
+    values = [1, 2.5, "3.14", "4"]
+    result = iterable_decimalize_formatter(values)
+    assert isinstance(result, list)
+    assert all(isinstance(v, Decimal) for v in result)
