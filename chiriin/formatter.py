@@ -298,7 +298,10 @@ def type_checker_crs(arg_index: int, kward: str):
             if isinstance(value, pyproj.CRS):
                 return func(*args, **kwargs)
             try:
-                value = pyproj.CRS(value)
+                if isinstance(value, str):
+                    value = pyproj.CRS(value)
+                else:
+                    value = pyproj.CRS.from_epsg(value)
             except Exception as e:
                 raise TypeError(
                     f"Argument '{kward}' must be a CRS or convertible to CRS, got {type(value)}"
