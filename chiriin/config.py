@@ -6,7 +6,7 @@ from typing import NamedTuple, Optional
 
 import pandas as pd
 
-from chiriin.formatter import datetime_formatter
+from chiriin.formatter import datetime_formatter, type_checker_integer
 
 # 地磁気値（偏角）のデータを読み込み辞書型に変換。辞書のキーは整数型の第二次メッシュコード
 _mag_df = pd.read_csv(
@@ -61,6 +61,15 @@ class Delta(NamedTuple):
     delta_x: float
     delta_y: float
     delta_z: float
+
+
+class RelativePosition(NamedTuple):
+    xyz1: XY | XYZ
+    xyz2: XY | XYZ
+    azimuth: float
+    level_distance: float
+    angle: float = 0.0
+    slope_distance: float = 0.0
 
 
 class SemidynamicCorrectionFiles(object):
@@ -290,3 +299,56 @@ class ChiriinWebApi(object):
             "altitude1={alti}"
         )
         return url
+
+
+class ElevationTileUrl(object):
+    def __init__(self):
+        self._base_url = "https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.txt"
+
+    @type_checker_integer(arg_index=1, kward="zoom_level")
+    @type_checker_integer(arg_index=2, kward="x")
+    @type_checker_integer(arg_index=3, kward="y")
+    def dem_10b(self, zoom_level: int, x: int, y: int) -> str:
+        """
+        ## Description:
+            地理院タイルの標高タイル（DEM10b）のURLを生成する。
+        ## Args:
+            zoom_level (int): ズームレベル
+            x (int): タイルのX座標
+            y (int): タイルのY座標
+        ## Returns:
+            str: 標高タイルのURL
+        """
+        return self._base_url.format(t="dem", z=zoom_level, x=x, y=y)
+
+    @type_checker_integer(arg_index=1, kward="zoom_level")
+    @type_checker_integer(arg_index=2, kward="x")
+    @type_checker_integer(arg_index=3, kward="y")
+    def dem_5a(self, zoom_level: int, x: int, y: int) -> str:
+        """
+        ## Description:
+            地理院タイルの標高タイル（DEM5a）のURLを生成する。
+        ## Args:
+            zoom_level (int): ズームレベル
+            x (int): タイルのX座標
+            y (int): タイルのY座標
+        ## Returns:
+            str: 標高タイルのURL
+        """
+        return self._base_url.format(t="dem5a", z=zoom_level, x=x, y=y)
+
+    @type_checker_integer(arg_index=1, kward="zoom_level")
+    @type_checker_integer(arg_index=2, kward="x")
+    @type_checker_integer(arg_index=3, kward="y")
+    def dem_5b(self, zoom_level: int, x: int, y: int) -> str:
+        """
+        ## Description:
+            地理院タイルの標高タイル（DEM5b）のURLを生成する。
+        ## Args:
+            zoom_level (int): ズームレベル
+            x (int): タイルのX座標
+            y (int): タイルのY座標
+        ## Returns:
+            str: 標高タイルのURL
+        """
+        return self._base_url.format(t="dem5b", z=zoom_level, x=x, y=y)
