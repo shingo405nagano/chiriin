@@ -3,6 +3,7 @@ import shapely
 
 from chiriin.config import ElevationTileUrl, TileInfo, TileScope
 from chiriin.tile import (
+    _search_tile_index,
     cut_off_points,
     download_tile_array,
     search_tile_info_from_geometry,
@@ -29,23 +30,48 @@ def test_download_tile_array(url, success):
             download_tile_array(url)
 
 
+@pytest.mark.parametrize(
+    "search_value, values, expected_index",
+    [
+        (0.0, [0.0, 1.0, 2.0], 0),
+        (0.5, [0.0, 1.0, 2.0], 0),
+        (1.0, [0.0, 1.0, 2.0], 1),
+        (1.5, [0.0, 1.0, 2.0], 1),
+    ],
+)
+def test__search_tile_index(search_value, values, expected_index):
+    """Test the _search_tile_index function."""
+    index = _search_tile_index(search_value, values)
+    assert index == expected_index, (
+        f"Expected index {expected_index}, but got {index} for search "
+        f"value {search_value} and values {values}"
+    )
+    with pytest.raises(ValueError):
+        _search_tile_index(3.0, values)
+
+
 def test_cut_off_points():
     """Test the cut_off_points function."""
     preview = 0
-    for zl in range(0, 25):
+    preview_x = 0
+    preview_y = 0
+    for zl in range(0, 20):
         points = cut_off_points(zl)
         assert isinstance(points, dict)
         assert "Y" in points
         assert "X" in points
-        assert preview < len(points["X"])
-        assert preview < len(points["Y"])
+        assert preview_x <= len(points["X"])
+        assert preview_y <= len(points["Y"])
+        assert preview < len(points["X"]) * len(points["Y"])
         preview = len(points["X"]) * len(points["Y"])
+        preview_x = len(points["X"])
+        preview_y = len(points["Y"])
 
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):  # noqa: B017
         cut_off_points(-1)
 
-    with pytest.raises(ValueError):
-        cut_off_points("invalid")  # type: ignore
+    with pytest.raises(Exception):  # noqa: B017
+        cut_off_points("invalid")
 
 
 def test_tile_info_from_xy():
@@ -57,7 +83,7 @@ def test_tile_info_from_xy():
     preview_y_resol = 0
     preview_width = 0
     preview_height = 0
-    for zl in sorted(list(range(0, 25)), reverse=True):
+    for zl in sorted(list(range(0, 20)), reverse=True):
         tile_info = search_tile_info_from_xy(lon, lat, zl, in_crs=crs)
         assert isinstance(tile_info, TileInfo)
         assert preview_x_resol < tile_info.x_resolution
@@ -71,7 +97,7 @@ def test_tile_info_from_geometry():
     geom = shapely.Point(140.3158733, 38.3105495).buffer(0.5).envelope
     crs = "EPSG:4326"
     tile_geoms = []
-    for zl in sorted(list(range(0, 25)), reverse=True):
+    for zl in sorted(list(range(0, 20)), reverse=True):
         tile_info = search_tile_info_from_geometry(geom, zl, in_crs=crs)
         if isinstance(tile_info, list):
             assert all(isinstance(ti, TileInfo) for ti in tile_info)

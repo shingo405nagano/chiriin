@@ -12,6 +12,7 @@ from chiriin.formatter import (
     type_checker_float,
     type_checker_integer,
     type_checker_shapely,
+    type_checker_zoom_level,
 )
 
 
@@ -54,6 +55,7 @@ def download_tile_array(url: str) -> np.ndarray:
 
 
 @type_checker_integer(arg_index=0, kward="zoom_level")
+@type_checker_zoom_level(arg_index=0, kward="zoom_level", min_zl=0, max_zl=24)
 def cut_off_points(zoom_level: int) -> dict[str, list[float]]:
     """
     ## Summary:
@@ -65,15 +67,40 @@ def cut_off_points(zoom_level: int) -> dict[str, list[float]]:
             0-24の範囲にある整数で指定する必要があります。
     Returns:
         dict[str, list[float]]:
-            タイルの左上の座標を表す辞書。
+            タイルの左上の座標を表す辞書。座標は`Web Mercator`座標系（EPSG:3857）です。
             'X'キーには緯度、'Y'キーには経度のリストが含まれます。
     """
-    return {"X": [], "Y": []}
+    web_mercator_scope = TileScope()
+    x_length = web_mercator_scope.x_max - web_mercator_scope.x_min
+    y_length = web_mercator_scope.y_max - web_mercator_scope.y_min
+    side = 2**zoom_level
+    X = [web_mercator_scope.x_min + i * (x_length / side) for i in range(side + 1)]
+    Y = [web_mercator_scope.y_min + i * (y_length / side) for i in range(side + 1)]
+    Y.sort(reverse=True)
+    return {"X": X, "Y": Y}
+
+
+def _search_tile_index(search_value: float, values: list[float]) -> int:
+    """
+    ## Summary:
+        指定された値が、与えられた値のリストのどの区間に属するかを検索する。
+        区間は左閉右開で定義されている。
+    Args:
+        search_value (float):
+            検索する値。
+        values (list[float]):
+            検索対象の値のリスト。値は昇順にソートされている必要があります。
+    """
+    for i, (left, right) in enumerate(zip(values[:-1], values[1:], strict=True)):
+        if left <= search_value < right:
+            return i
+    raise ValueError(
+        f"Value {search_value} is out of bounds for the provided values: {values}"
+    )
 
 
 @type_checker_float(arg_index=0, kward="x")
 @type_checker_float(arg_index=1, kward="y")
-@type_checker_integer(arg_index=2, kward="zoom_level")
 @type_checker_crs(arg_index=3, kward="in_crs")
 def search_tile_info_from_xy(
     x: float,
