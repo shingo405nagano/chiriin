@@ -19,6 +19,7 @@ from chiriin.formatter import (
     type_checker_integer,
     type_checker_iterable,
     type_checker_shapely,
+    type_checker_zoom_level,
 )
 
 
@@ -280,3 +281,28 @@ def test_iterable_decimalize_formatter():
     result = iterable_decimalize_formatter(values)
     assert isinstance(result, list)
     assert all(isinstance(v, Decimal) for v in result)
+
+
+@pytest.mark.parametrize(
+    "zl, min_zl, max_zl, success",
+    [
+        (10, 0, 24, True),
+        (100, 0, 24, False),
+        ("1", 0, 24, True),
+        ("invalid", 0, 24, False),
+    ],
+)
+def test_type_checker_zoom_level(zl, min_zl, max_zl, success):
+    """Test type_checker_zoom_level function."""
+
+    @type_checker_zoom_level(arg_index=0, kward="zl", min_zl=min_zl, max_zl=max_zl)
+    def dummy_function(zl: int):
+        return zl
+
+    if success:
+        result = dummy_function(zl)
+        assert isinstance(result, int)
+        assert min_zl <= result <= max_zl
+    else:
+        with pytest.raises(Exception):
+            dummy_function(zl)
