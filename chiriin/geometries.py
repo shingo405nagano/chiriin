@@ -11,7 +11,11 @@ from chiriin.config import XY
 from chiriin.utils import dimensional_count
 
 
-def dms_to_degree(dms: float, digits: int = 9, decimal_obj: bool = False) -> float | Decimal:
+def dms_to_degree(
+    dms: float,  #
+    digits: int = 9,
+    decimal_obj: bool = False,
+) -> float | Decimal:
     """
     ## Description:
         度分秒経緯度を10進法経緯度に変換する関数
@@ -44,7 +48,11 @@ def dms_to_degree(dms: float, digits: int = 9, decimal_obj: bool = False) -> flo
     return float(round(deg + min_ + sec, digits))
 
 
-def degree_to_dms(degree: float, digits: int = 5, decimal_obj: bool = False) -> float | Decimal:
+def degree_to_dms(
+    degree: float,  #
+    digits: int = 5,
+    decimal_obj: bool = False,
+) -> float | Decimal:
     """
     ## Description:
         10進法経緯度を度分秒経緯度に変換する関数
@@ -85,7 +93,12 @@ def degree_to_dms(degree: float, digits: int = 5, decimal_obj: bool = False) -> 
     return dms
 
 
-def _dms_to_degree_lonlat(lon: float, lat: float, digits: int = 9, decimal_obj: bool = False) -> XY:
+def _dms_to_degree_lonlat(
+    lon: float,  #
+    lat: float,
+    digits: int = 9,
+    decimal_obj: bool = False,
+) -> XY:
     """
     ## Description:
         度分秒経緯度を10進法経緯度に変換する関数
@@ -139,9 +152,11 @@ def _dms_to_degree_lonlat_list(
         >>> dms_to_degree_lonlat_list([140516.27814, 140516.27814], [36103600.00000, 36103600.00000])
         [(140.087855042, 36.103774792), (140.087855042, 36.103774792)]
     """
-    assert len(lon_list) == len(lat_list), "lon_list and lat_list must have the same length." # type: ignore
-    assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."# type: ignore
-    assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."# type: ignore
+    assert len(lon_list) == len(lat_list), (
+        "lon_list and lat_list must have the same length."
+    )  # type: ignore
+    assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."  # type: ignore
+    assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."  # type: ignore
     result = []
     for lon, lat in zip(lon_list, lat_list, strict=False):
         xy = _dms_to_degree_lonlat(lon, lat, digits, decimal_obj)
@@ -178,7 +193,12 @@ def dms_to_degree_lonlat(
     return _dms_to_degree_lonlat(lon, lat, digits, decimal_obj)  # type: ignore
 
 
-def _degree_to_dms_lonlat(lon: float, lat: float, digits: int = 5, decimal_obj: bool = False) -> XY:
+def _degree_to_dms_lonlat(
+    lon: float,  #
+    lat: float,
+    digits: int = 5,
+    decimal_obj: bool = False,
+) -> XY:
     """
     ## Description:
         10進法経緯度を度分秒経緯度に変換する関数
@@ -206,7 +226,10 @@ def _degree_to_dms_lonlat(lon: float, lat: float, digits: int = 5, decimal_obj: 
 
 
 def _degree_to_dms_lonlat_list(
-    lon_list: Iterable[float], lat_list: Iterable[float], digits: int = 5, decimal_obj: bool = False
+    lon_list: Iterable[float],
+    lat_list: Iterable[float],
+    digits: int = 5,
+    decimal_obj: bool = False,
 ) -> list[XY]:
     """
     ## Description:
@@ -229,7 +252,9 @@ def _degree_to_dms_lonlat_list(
         >>> degree_to_dms_lonlat_list([140.08785504166664, 140.08785504166664], [36.103774791666666, 36.103774791666666])
         [(140516.2781, 36103600.0000), (140516.2781, 36103600.0000)]
     """
-    assert len(lon_list) == len(lat_list), "lon_list and lat_list must have the same length."  # type: ignore
+    assert len(lon_list) == len(lat_list), (
+        "lon_list and lat_list must have the same length."
+    )  # type: ignore
     assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."  # type: ignore
     assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."  # type: ignore
     result = []

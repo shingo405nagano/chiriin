@@ -98,7 +98,7 @@ def _return_value(value: Any, data: dict[str, Any], args, kwargs) -> Any:
     return {"args": args, "kwargs": kwargs}
 
 
-def type_checker_float(arg_index: int, kward: str) -> float:
+def type_checker_float(arg_index: int, kward: str):
     """
     ## Description:
         引数が浮動小数点数か浮動小数点数に変換可能かをチェックするデコレーター。
@@ -121,7 +121,9 @@ def type_checker_float(arg_index: int, kward: str) -> float:
             try:
                 value = float(value)
             except Exception:
-                raise TypeError(f"Argument '{kward}' must be a float or convertible to float, got {type(value)}")  # noqa: B904
+                raise TypeError(
+                    f"Argument '{kward}' must be a float or convertible to float, got {type(value)}"
+                )  # noqa: B904
             else:
                 result = _return_value(value, data, args, kwargs)
                 return func(*result["args"], **result["kwargs"])
@@ -131,7 +133,7 @@ def type_checker_float(arg_index: int, kward: str) -> float:
     return decorator
 
 
-def type_checker_integer(arg_index: int, kward: str) -> int:
+def type_checker_integer(arg_index: int, kward: str):
     """
     ## Description:
         関数の引数が整数か、整数に変換可能かをチェックするデコレーター。
@@ -154,7 +156,9 @@ def type_checker_integer(arg_index: int, kward: str) -> int:
             try:
                 value = int(value)
             except Exception:
-                raise TypeError(f"Argument '{kward}' must be an integer or convertible to integer, got {type(value)}")  # noqa: B904
+                raise TypeError(
+                    f"Argument '{kward}' must be an integer or convertible to integer, got {type(value)}"
+                )  # noqa: B904
             else:
                 result = _return_value(value, data, args, kwargs)
                 return func(*result["args"], **result["kwargs"])
@@ -164,7 +168,7 @@ def type_checker_integer(arg_index: int, kward: str) -> int:
     return decorator
 
 
-def type_checker_datetime(arg_index: int, kward: str) -> datetime.datetime:
+def type_checker_datetime(arg_index: int, kward: str):
     """
     ## Description:
         関数の引数がdatetimeオブジェクトか、datetimeに変換可能な文字列かをチェックするデコレーター。
@@ -193,7 +197,7 @@ def type_checker_datetime(arg_index: int, kward: str) -> datetime.datetime:
     return decorator
 
 
-def type_checker_decimal(arg_index: int, kward: str) -> float:
+def type_checker_decimal(arg_index: int, kward: str):
     """
     ## Description:
         関数の引数がDecimalオブジェクトか、Decimalに変換可能な値かをチェックするデコレーター。
@@ -219,7 +223,9 @@ def type_checker_decimal(arg_index: int, kward: str) -> float:
             try:
                 value = Decimal(f"{float(value)}")
             except Exception:
-                raise TypeError(f"Argument '{kward}' must be a decimal or convertible to decimal, got {type(value)}")  # noqa: B904
+                raise TypeError(
+                    f"Argument '{kward}' must be a decimal or convertible to decimal, got {type(value)}"
+                )  # noqa: B904
             else:
                 result = _return_value(value, data, args, kwargs)
                 return func(*result["args"], **result["kwargs"])
