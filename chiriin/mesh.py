@@ -31,11 +31,11 @@ class MeshCode(object):
         ## Returns:
             dict[str, str]:
                 メッシュコードの各部分を含む辞書
-                - first_mesh_code: 第一メッシュコード
-                - secandary_mesh_code: 第二メッシュコード
-                - standard_mesh_code: 標準メッシュコード
-                - half_mesh_code: 半分メッシュコード
-                - quarter_mesh_code: 四分割メッシュコード
+                - first_mesh_code: 第1次メッシュコード
+                - secandary_mesh_code: 第2次メッシュコード
+                - standard_mesh_code: 基準地域メッシュコード
+                - half_mesh_code: 2分の1地域メッシュコード
+                - quarter_mesh_code: 4分の1地域メッシュコード
         """
         # latitude
         p, a = divmod(lat * 60, 40)
