@@ -332,8 +332,10 @@ async def fetch_distance_and_azimuth(
                 data = await response.json()
                 if data.get("ErrMsg") is None:
                     data = data.get("OutputData")
-                    distance = float(data["geoLength"] if data['geoLength'] != '' else 0.0)
-                    azimuth = float(data["azimuth1"] if data['azimuth1'] != '' else 0.0)
+                    distance = float(
+                        data["geoLength"] if data["geoLength"] != "" else 0.0
+                    )
+                    azimuth = float(data["azimuth1"] if data["azimuth1"] != "" else 0.0)
                     print(
                         f"Idx: {index}  距離: {distance}m, 方位角: {azimuth}度\n"
                         f"(lon1: {lon1}, lat1: {lat1}, lon2: {lon2}, lat2: {lat2})"
