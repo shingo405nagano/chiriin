@@ -11,7 +11,7 @@ import pyproj
 import shapely
 
 from chiriin.config import XY
-from chiriin.formatter import type_checker_crs, type_checker_shapely
+from chiriin.formatter import type_checker_crs, type_checker_float, type_checker_shapely
 from chiriin.utils import dimensional_count
 
 
@@ -23,14 +23,14 @@ def dms_to_degree(
     """
     ## Description:
         度分秒経緯度を10進法経緯度に変換する関数
-    ## Args:
+    Args:
         dms (float):
             度分秒経緯度
         digits (int):
             小数点以下の桁数
         decimal_obj (bool):
             10進法経緯度をDecimal型で返すかどうか
-    ## Returns:
+    Returns:
         float | Decimal:
             10進法経緯度
     """
@@ -60,14 +60,14 @@ def degree_to_dms(
     """
     ## Description:
         10進法経緯度を度分秒経緯度に変換する関数
-    ## Args:
+    Args:
         degree (float):
             10進法経緯度
         digits (int):
             小数点以下の桁数
         decimal_obj (bool):
             度分秒経緯度をDecimal型で返すかどうか
-    ## Returns:
+    Returns:
         float | Decimal:
             度分秒経緯度
     """
@@ -106,7 +106,7 @@ def _dms_to_degree_lonlat(
     """
     ## Description:
         度分秒経緯度を10進法経緯度に変換する関数
-    ## Args:
+    Args:
         lon (float):
             度分秒経緯度
         lat (float):
@@ -115,7 +115,7 @@ def _dms_to_degree_lonlat(
             小数点以下の桁数
         decimal_obj (bool):
             Decimal型で返すかどうか
-    ## Returns:
+    Returns:
         XY(NamedTuple):
             10進法経緯度
             - x: float | Decimal
@@ -138,7 +138,7 @@ def _dms_to_degree_lonlat_list(
     """
     ## Description:
         リスト化された度分秒経緯度を10進法経緯度に変換する関数
-    ## Args:
+    Args:
         lon_list (Iterable[float]):
             度分秒経緯度のリスト（経度）
         lat_list (Iterable[float]):
@@ -147,7 +147,7 @@ def _dms_to_degree_lonlat_list(
             小数点以下の桁数
         decimal_obj (bool):
             Decimal型で返すかどうか
-    ## Returns:
+    Returns:
         list[XY(NamedTuple)]:
             10進法経緯度のリスト
             - x: float | Decimal
@@ -177,7 +177,7 @@ def dms_to_degree_lonlat(
     """
     ## Description:
         度分秒経緯度を10進法経緯度に変換する関数
-    ## Args:
+    Args:
         lon (float | Iterable[float]):
             度分秒経緯度（経度）
         lat (float | Iterable[float]):
@@ -186,7 +186,7 @@ def dms_to_degree_lonlat(
             小数点以下の桁数
         decimal_obj (bool):
             Decimal型で返すかどうか
-    ## Returns:
+    Returns:
         XY | list[XY]:
             10進法経緯度
             - x: float | Decimal
@@ -206,7 +206,7 @@ def _degree_to_dms_lonlat(
     """
     ## Description:
         10進法経緯度を度分秒経緯度に変換する関数
-    ## Args:
+    Args:
         lon (float):
             10進法経緯度（経度）
         lat (float):
@@ -215,7 +215,7 @@ def _degree_to_dms_lonlat(
             小数点以下の桁数
         decimal_obj (bool):
             Decimal型で返すかどうか
-    ## Returns:
+    Returns:
         XY(NamedTuple):
             度分秒経緯度
             - x: float | Decimal
@@ -238,7 +238,7 @@ def _degree_to_dms_lonlat_list(
     """
     ## Description:
         リスト化された10進法経緯度を度分秒経緯度に変換する関数
-    ## Args:
+    Args:
         lon_list (Iterable[float]):
             10進法経緯度のリスト（経度）
         lat_list (Iterable[float]):
@@ -247,7 +247,7 @@ def _degree_to_dms_lonlat_list(
             小数点以下の桁数
         decimal_obj (bool):
             Decimal型で返すかどうか
-    ## Returns:
+    Returns:
         list[XY(NamedTuple)]:
             度分秒経緯度のリスト
             - x: float | Decimal
@@ -277,7 +277,7 @@ def degree_to_dms_lonlat(
     """
     ## Description:
         10進法経緯度を度分秒経緯度に変換する関数
-    ## Args:
+    Args:
         lon (float | Iterable[float]):
             10進法経緯度（経度）
         lat (float | Iterable[float]):
@@ -286,7 +286,7 @@ def degree_to_dms_lonlat(
             小数点以下の桁数
         decimal_obj (bool):
             Decimal型で返すかどうか
-    ## Returns:
+    Returns:
         XY | list[XY]:
             度分秒経緯度
             - x: float | Decimal
@@ -295,6 +295,39 @@ def degree_to_dms_lonlat(
     if isinstance(lon, Iterable):
         return _degree_to_dms_lonlat_list(lon, lat, digits, decimal_obj)  # type: ignore
     return _degree_to_dms_lonlat(lon, lat, digits, decimal_obj)  # type: ignore
+
+
+@type_checker_float(arg_index=0, kward="x")
+@type_checker_float(arg_index=1, kward="y")
+@type_checker_crs(arg_index=2, kward="in_crs")
+@type_checker_crs(arg_index=3, kward="out_crs")
+def transform_xy(
+    x: float | Iterable[float],  #
+    y: float | Iterable[float],
+    in_crs: str | int | pyproj.CRS,
+    out_crs: str | int | pyproj.CRS,
+) -> XY | list[XY]:
+    """
+    ## Summary:
+        x座標とy座標を指定した座標系から別の座標系に変換する。
+    Args:
+        x (float | Iterable[float]):
+            変換するx座標。単一の値または値のリスト。
+        y (float | Iterable[float]):
+            変換するy座標。単一の値または値のリスト。
+        in_crs (str | int | pyproj.CRS):
+            入力座標系。EPSGコードやCRSオブジェクトを指定。
+        out_crs (str | int | pyproj.CRS):
+            出力座標系。EPSGコードやCRSオブジェクトを指定。
+    Returns:
+        XY | list[XY]:
+            変換後の座標。単一のXYオブジェクトまたはXYオブジェクトのリスト。
+    """
+    transformer = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True)
+    lon, lat = transformer.transform(x, y)
+    if isinstance(x, Iterable):
+        return [XY(x=lon_i, y=lat_i) for lon_i, lat_i in zip(lon, lat, strict=False)]
+    return XY(x=lon, y=lat)
 
 
 @type_checker_shapely(arg_index=0, kward="geometry")
@@ -308,14 +341,14 @@ def transform_geometry(
     """
     ## Summary:
         指定した座標系から別の座標系にジオメトリを変換する。
-    ## Args:
+    Args:
         geometry (shapely.geometry.base.BaseGeometry):
             変換するジオメトリ。shapelyのBaseGeometryオブジェクト。
         in_crs (str | int | pyproj.CRS):
             入力座標系。EPSGコードやCRSオブジェクトを指定。
         out_crs (str | int | pyproj.CRS):
             出力座標系。EPSGコードやCRSオブジェクトを指定。
-    ## Returns:
+    Returns:
         shapely.geometry.base.BaseGeometry:
             変換後のジオメトリ。shapelyのBaseGeometryオブジェクト。
     """

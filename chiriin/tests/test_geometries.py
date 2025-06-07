@@ -10,6 +10,7 @@ from chiriin.geometries import (
     dms_to_degree,
     dms_to_degree_lonlat,
     transform_geometry,
+    transform_xy,
 )
 
 DMS1_LON = 1403906.4277
@@ -116,6 +117,23 @@ def test_degree_to_lonlat(lon, lat, digits, decimal_obj, expected):
         if not decimal_obj:
             assert result.x == pytest.approx(expected[0], rel=1 * 10**-digits)
             assert result.y == pytest.approx(expected[1], rel=1 * 10**-digits)
+
+
+def test_transform_xy():
+    """Test the transformation of coordinates between different CRS."""
+    lon, lat = 140.651785472, 40.85253225
+    in_crs = "EPSG:4326"
+    out_crs = "EPSG:3857"
+
+    transformed_xy = transform_xy(lon, lat, in_crs, out_crs)
+    assert isinstance(transformed_xy, XY)
+    assert transformed_xy.x != lon or transformed_xy.y != lat, (
+        "Coordinates should be transformed."
+    )
+
+    # Test with invalid CRS
+    with pytest.raises(Exception):  # noqa: B017
+        transform_xy(lon, lat, "invalid_crs", out_crs)
 
 
 @pytest.mark.parametrize(
