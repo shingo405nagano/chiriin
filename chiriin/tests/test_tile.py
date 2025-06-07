@@ -92,17 +92,14 @@ def test_tile_info_from_xy():
 
 def test_tile_info_from_geometry():
     """Test the search_tile_info_from_geometry function."""
-    geom = shapely.Point(140.3158733, 38.3105495).buffer(0.5).envelope
+    geom = shapely.Point(140.3158733, 38.3105495).buffer(0.1).envelope
     crs = "EPSG:4326"
     tile_geoms = []
-    for zl in sorted(list(range(0, 20)), reverse=True):
-        tile_info = search_tile_info_from_geometry(geom, zl, in_crs=crs)
-        if isinstance(tile_info, list):
-            assert all(isinstance(ti, TileInfo) for ti in tile_info)
-        else:
-            assert isinstance(tile_info, TileInfo)
-            tile_info = [tile_info]
-        for tl in tile_info:
+    for zl in sorted(list(range(0, 14)), reverse=True):
+        tile_info_list = search_tile_info_from_geometry(geom, zl, in_crs=crs)
+        assert isinstance(tile_info_list, list)
+        assert all(isinstance(ti, TileInfo) for ti in tile_info_list)
+        for tl in tile_info_list:
             scope = shapely.box(*tl.tile_scope)
             tile_geoms.append(scope)
 

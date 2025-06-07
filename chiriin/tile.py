@@ -1,12 +1,11 @@
 import time
-from typing import Optional
 
 import numpy as np
 import pyproj
 import requests
 import shapely
 
-from chiriin.config import TileInfo, TileScope
+from chiriin.config import XY, TileInfo, TileScope
 from chiriin.formatter import (
     type_checker_crs,
     type_checker_float,
@@ -14,6 +13,7 @@ from chiriin.formatter import (
     type_checker_shapely,
     type_checker_zoom_level,
 )
+from chiriin.geometries import transform_geometry
 
 
 def download_tile_array(url: str) -> np.ndarray:
@@ -106,12 +106,18 @@ def _search_tile_index(search_value: float, values: list[float]) -> int:
 @type_checker_float(arg_index=1, kward="y")
 @type_checker_crs(arg_index=3, kward="in_crs")
 def search_tile_info_from_xy(
-    x: float, y: float, zoom_level: int, in_crs: str | int | pyproj.CRS, **kwargs
+    x: float,  #
+    y: float,
+    zoom_level: int,
+    in_crs: str | int | pyproj.CRS,
+    **kwargs,
 ) -> TileInfo:
     """
     ## Summary:
         指定した座標とズームレベルを含むタイルの情報を取得する。
-        座標は"Iterable"な値を受け取らないので注意。
+        座標は"Iterable"な値を受け取らないので注意。基本的に取得するタイルのサイズは
+        256x256ピクセルであることを前提としています。サイズが異なる場合は、
+        `width`と`height`のキーワード引数を使用して指定できます。
     Args:
         x(float):
             x座標
@@ -126,6 +132,7 @@ def search_tile_info_from_xy(
         **kwargs:
             - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
             - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+            - cut_off_points_lst(list[float]): 'cut_off_points'で取得した座標のリスト
     Returns:
         TileInfo:
             指定された座標とズームレベルに対応するタイルの情報を含むTileInfoオブジェクト。
@@ -145,15 +152,21 @@ def search_tile_info_from_xy(
         # 入力座標系がWeb Mercatorでない場合、変換を行う
         transformer = pyproj.Transformer.from_crs(in_crs, "EPSG:3857", always_xy=True)
         x, y = transformer.transform(x, y)
-    tile_cds = cut_off_points(zoom_level)
+    # ズームレベルに対応するタイルの座標を取得
+    tile_cds = kwargs.get("cut_off_points_lst")
+    if tile_cds is None:
+        tile_cds = cut_off_points(zoom_level)
+    # タイルの"X"インデックスと"Y"インデックスを検索
     x_idx = _search_tile_index(x, tile_cds["X"])
     y_idx = _search_tile_index(y, tile_cds["Y"])
+    # タイルの範囲を計算
     tile_scope = TileScope(
         x_min=tile_cds["X"][x_idx],
         y_min=tile_cds["Y"][y_idx + 1],
         x_max=tile_cds["X"][x_idx + 1],
         y_max=tile_cds["Y"][y_idx],
     )
+    # タイルの解像度を計算
     width = kwargs.get("width", 256)
     height = kwargs.get("height", 256)
     x_resolution = (tile_scope.x_max - tile_scope.x_min) / width
@@ -174,13 +187,16 @@ def search_tile_info_from_xy(
 def search_tile_info_from_geometry(
     geometry: shapely.geometry.base.BaseGeometry,
     zoom_level: int,
-    in_crs: Optional[str | pyproj.CRS] = None,
-) -> TileInfo | list[TileInfo]:
+    in_crs: str | pyproj.CRS,
+    **kwargs,
+) -> list[TileInfo]:
     """
     ## Summary:
         指定したジオメトリとズームレベルを含むタイルの情報を取得する。
         ジオメトリはshapelyのBaseGeometryオブジェクトで指定します。
         ジオメトリの範囲が複数のタイルにまたがる場合は、listで返されます。
+        基本的に取得するタイルのサイズは256x256ピクセルであることを前提としていますが、
+        サイズが異なる場合は、`width`と`height`のキーワード引数を使用して指定できます。
     Args:
         geometry(shapely.geometry.base.BaseGeometry):
             タイルを検索するためのジオメトリ。
@@ -190,15 +206,53 @@ def search_tile_info_from_geometry(
         in_crs(Optional[str | pyproj.CRS]):
             入力座標系を指定するオプションの引数。
             指定しない場合は、経緯度（EPSG:4326）として解釈されます。
+        **kwargs:
+            - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+            - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
     Returns:
         TileInfo | list[TileInfo]:
             指定されたジオメトリとズームレベルに対応するタイルの情報を含むTileInfoオブジェクト。
     """
-    return TileInfo(
-        x=0,
-        y=0,
-        zoom_level=zoom_level,
-        tile_scope=TileScope(x_min=0, y_min=0, x_max=0, y_max=0),
-        x_resolution=0.0,
-        y_resolution=0.0,
-    )
+    if in_crs.to_epsg() != 3857:
+        # 入力座標系がWeb Mercatorでない場合、変換を行う
+        geometry = transform_geometry(geometry, in_crs, "EPSG:3857")
+    # ジオメトリの範囲を取得
+    geometry_scope = TileScope(*geometry.bounds)
+    upper_left_xy = XY(geometry_scope.x_min, geometry_scope.y_max)
+    lower_right_xy = XY(geometry_scope.x_max, geometry_scope.y_min)
+    # ズームレベルに対応するタイルの座標を取得
+    tile_cds = cut_off_points(zoom_level)
+    # タイルの"X"インデックスと"Y"インデックスを検索
+    upper_left_x_idx = _search_tile_index(upper_left_xy.x, tile_cds["X"])
+    upper_left_y_idx = _search_tile_index(upper_left_xy.y, tile_cds["Y"])
+    lower_right_x_idx = _search_tile_index(lower_right_xy.x, tile_cds["X"])
+    lower_right_y_idx = _search_tile_index(lower_right_xy.y, tile_cds["Y"])
+    # タイルのインデックスが一致しない場合は、その中間のタイルも考慮する
+    tiles = []
+    if upper_left_x_idx == lower_right_x_idx and upper_left_y_idx == lower_right_y_idx:
+        # 単一のタイルに収まる場合
+        tiles.append(
+            search_tile_info_from_xy(
+                upper_left_xy.x,
+                upper_left_xy.y,
+                zoom_level,
+                in_crs=pyproj.CRS.from_epsg(3857),
+                cut_off_points_lst=tile_cds,
+                **kwargs,
+            )
+        )
+    else:
+        x_idx_range = range(upper_left_x_idx, lower_right_x_idx + 1)
+        y_idx_range = range(upper_left_y_idx, lower_right_y_idx + 1)
+        for x_idx in x_idx_range:
+            for y_idx in y_idx_range:
+                tile_info = search_tile_info_from_xy(
+                    tile_cds["X"][x_idx],
+                    tile_cds["Y"][y_idx],
+                    zoom_level,
+                    in_crs=pyproj.CRS.from_epsg(3857),
+                    cut_off_points_lst=tile_cds,
+                    **kwargs,
+                )
+                tiles.append(tile_info)
+    return tiles
