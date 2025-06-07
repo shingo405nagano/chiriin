@@ -1,5 +1,6 @@
 import datetime
 import os
+from dataclasses import dataclass
 from decimal import Decimal
 from glob import glob
 from typing import NamedTuple, Optional
@@ -324,6 +325,54 @@ class TileInfo(NamedTuple):
     width: int = 256
     height: int = 256
     crs: pyproj.CRS = pyproj.CRS.from_epsg(3857)
+
+    def __repr__(self):
+        return f"""
+TileInfo:
+    - zoom_level  : {self.zoom_level}
+    - x_idx       : {self.x_idx}
+    - y_idx       : {self.y_idx}
+    - tile_scope  : {self.tile_scope}
+    - x_resolution: {self.x_resolution}
+    - y_resolution: {self.y_resolution}
+    - width       : {self.width}
+    - height      : {self.height}
+    - crs         : {self.crs.to_epsg()}
+"""
+
+
+@dataclass
+class TileData:
+    """
+    ## Description:
+        タイルのデータを格納するクラス。
+    """
+
+    zoom_level: int
+    x_idx: int
+    y_idx: int
+    tile_scope: TileScope
+    x_resolution: float
+    y_resolution: float
+    crs: pyproj.CRS
+    width: int = 256
+    height: int = 256
+
+    def get_gdal_transform(self) -> tuple[float]:
+        """
+        ## Description:
+            GDALの変換用のタプルを返す。
+        ## Returns:
+            tuple[float]: GDALの変換用のタプル
+        """
+        return (
+            self.tile_scope.x_min,
+            self.x_resolution,
+            0.0,
+            self.tile_scope.y_max,
+            0.0,
+            self.y_resolution * -1,
+        )
 
 
 class ElevationTileUrl(object):
