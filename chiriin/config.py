@@ -5,6 +5,7 @@ from decimal import Decimal
 from glob import glob
 from typing import NamedTuple, Optional
 
+import numpy as np
 import pandas as pd
 import pyproj
 
@@ -355,6 +356,7 @@ class TileData:
     x_resolution: float
     y_resolution: float
     crs: pyproj.CRS
+    ary: np.ndarray
     width: int = 256
     height: int = 256
 
