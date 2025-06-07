@@ -3,9 +3,9 @@ import shapely
 
 from chiriin.config import ElevationTileUrl, TileInfo, TileScope
 from chiriin.tile import (
-    _search_tile_index,
     cut_off_points,
     download_tile_array,
+    lonlat_to_tile_idx,
     search_tile_info_from_geometry,
     search_tile_info_from_xy,
 )
@@ -31,23 +31,22 @@ def test_download_tile_array(url, success):
 
 
 @pytest.mark.parametrize(
-    "search_value, values, expected_index",
+    "lon, lat, zoom_level, in_crs, x_idx, y_idx",
     [
-        (0.0, [0.0, 1.0, 2.0], 0),
-        (0.5, [0.0, 1.0, 2.0], 0),
-        (1.0, [0.0, 1.0, 2.0], 1),
-        (1.5, [0.0, 1.0, 2.0], 1),
+        (140.087099, 40.504665, 14, "EPSG:4326", 14567, 6172),
+        (140.087099, 40.504665, 15, "EPSG:4326", 29135, 12345),
+        (140.087099, 40.504665, 16, "EPSG:4326", 58270, 24690),
+        (139.087099, 35.504665, 12, "EPSG:4326", 3630, 1615),
+        (139.087099, 35.504665, 15, "EPSG:4326", 29044, 12923),
     ],
 )
-def test__search_tile_index(search_value, values, expected_index):
-    """Test the _search_tile_index function."""
-    index = _search_tile_index(search_value, values)
-    assert index == expected_index, (
-        f"Expected index {expected_index}, but got {index} for search "
-        f"value {search_value} and values {values}"
-    )
-    with pytest.raises(ValueError):
-        _search_tile_index(3.0, values)
+def test_lonlat_to_tile_idx(lon, lat, zoom_level, in_crs, x_idx, y_idx):
+    """Test the lonlat_to_tile_idx function."""
+    x, y = lonlat_to_tile_idx(lon, lat, zoom_level, in_crs=in_crs)
+    assert isinstance(x, int)
+    assert isinstance(y, int)
+    assert x == x_idx
+    assert y == y_idx
 
 
 def test_cut_off_points():
@@ -95,7 +94,7 @@ def test_tile_info_from_geometry():
     geom = shapely.Point(140.3158733, 38.3105495).buffer(0.1).envelope
     crs = "EPSG:4326"
     tile_geoms = []
-    for zl in sorted(list(range(0, 14)), reverse=True):
+    for zl in sorted(list(range(0, 18)), reverse=True):
         tile_info_list = search_tile_info_from_geometry(geom, zl, in_crs=crs)
         assert isinstance(tile_info_list, list)
         assert all(isinstance(ti, TileInfo) for ti in tile_info_list)

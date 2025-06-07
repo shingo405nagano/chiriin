@@ -1,3 +1,4 @@
+import math
 import time
 
 import numpy as np
@@ -13,7 +14,7 @@ from chiriin.formatter import (
     type_checker_shapely,
     type_checker_zoom_level,
 )
-from chiriin.geometries import transform_geometry
+from chiriin.geometries import transform_geometry, transform_xy
 
 
 def download_tile_array(url: str) -> np.ndarray:
@@ -80,26 +81,37 @@ def cut_off_points(zoom_level: int) -> dict[str, list[float]]:
     return {"X": X, "Y": Y}
 
 
-def _search_tile_index(search_value: float, values: list[float]) -> int:
+@type_checker_float(arg_index=0, kward="lon")
+@type_checker_float(arg_index=1, kward="lat")
+@type_checker_integer(arg_index=2, kward="zoom_level")
+@type_checker_crs(arg_index=3, kward="in_crs")
+def lonlat_to_tile_idx(
+    lon: float,  #
+    lat: float,
+    zoom_level: int,
+    in_crs: str | int | pyproj.CRS,
+) -> tuple[int, int]:
     """
     ## Summary:
-        指定された値が、与えられた値のリストのどの区間に属するかを検索する。
-        区間は左閉右開で定義されている。
+        経緯度とズームレベルからタイルのインデックスを計算する関数。
     Args:
-        search_value (float):
-            検索する値。
-        values (list[float]):
-            検索対象の値のリスト。値は昇順にソートされている必要があります。
+        lon (float):
+        lat (float):
+        zoom_level (int):
+    Returns:
+        tuple[int, int]:
+            タイルのインデックス（x, y）
     """
-    for i, (left, right) in enumerate(zip(values[:-1], values[1:], strict=True)):
-        min_ = min(left, right)
-        max_ = max(left, right)
-        if min_ <= search_value < max_:
-            return i
-    raise ValueError(
-        f"Value {search_value} is out of bounds for the provided values:"
-        f"min={min(values)}, max={max(values)}"
-    )
+    if in_crs.to_epsg() != 4326:
+        # 入力座標系が経緯度でない場合、変換を行う
+        xy = transform_xy(lon, lat, in_crs, "EPSG:4326")
+    else:
+        xy = XY(lon, lat)
+    n = 2.0**zoom_level
+    x_index = int((xy.x + 180.0) / 360.0 * n)
+    _y = math.log(math.tan(math.radians(xy.y)) + 1 / math.cos(math.radians(xy.y)))
+    y_index = int(n * (1 - _y / math.pi) / 2)
+    return x_index, y_index
 
 
 @type_checker_float(arg_index=0, kward="x")
@@ -150,15 +162,15 @@ def search_tile_info_from_xy(
     """
     if in_crs.to_epsg() != 3857:
         # 入力座標系がWeb Mercatorでない場合、変換を行う
-        transformer = pyproj.Transformer.from_crs(in_crs, "EPSG:3857", always_xy=True)
-        x, y = transformer.transform(x, y)
+        xy = transform_xy(x, y, in_crs, "EPSG:3857")
+    else:
+        xy = XY(x, y)
     # ズームレベルに対応するタイルの座標を取得
     tile_cds = kwargs.get("cut_off_points_lst")
     if tile_cds is None:
         tile_cds = cut_off_points(zoom_level)
     # タイルの"X"インデックスと"Y"インデックスを検索
-    x_idx = _search_tile_index(x, tile_cds["X"])
-    y_idx = _search_tile_index(y, tile_cds["Y"])
+    x_idx, y_idx = lonlat_to_tile_idx(xy.x, xy.y, zoom_level, in_crs="EPSG:3857")
     # タイルの範囲を計算
     tile_scope = TileScope(
         x_min=tile_cds["X"][x_idx],
@@ -223,10 +235,12 @@ def search_tile_info_from_geometry(
     # ズームレベルに対応するタイルの座標を取得
     tile_cds = cut_off_points(zoom_level)
     # タイルの"X"インデックスと"Y"インデックスを検索
-    upper_left_x_idx = _search_tile_index(upper_left_xy.x, tile_cds["X"])
-    upper_left_y_idx = _search_tile_index(upper_left_xy.y, tile_cds["Y"])
-    lower_right_x_idx = _search_tile_index(lower_right_xy.x, tile_cds["X"])
-    lower_right_y_idx = _search_tile_index(lower_right_xy.y, tile_cds["Y"])
+    upper_left_x_idx, upper_left_y_idx = lonlat_to_tile_idx(
+        upper_left_xy.x, upper_left_xy.y, zoom_level, in_crs="EPSG:3857"
+    )
+    lower_right_x_idx, lower_right_y_idx = lonlat_to_tile_idx(
+        lower_right_xy.x, lower_right_xy.y, zoom_level, in_crs="EPSG:3857"
+    )
     # タイルのインデックスが一致しない場合は、その中間のタイルも考慮する
     tiles = []
     if upper_left_x_idx == lower_right_x_idx and upper_left_y_idx == lower_right_y_idx:
