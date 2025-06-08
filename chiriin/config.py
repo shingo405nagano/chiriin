@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pyproj
 
-from chiriin.formatter import datetime_formatter, type_checker_integer
+from chiriin.formatter import datetime_formatter
 
 # 地磁気値（偏角）のデータを読み込み辞書型に変換。辞書のキーは整数型の第二次メッシュコード
 _mag_df = pd.read_csv(
@@ -377,54 +377,73 @@ class TileData:
         )
 
 
-class ElevationTileUrl(object):
+class TileUrls(object):
     def __init__(self):
         self._base_url = "https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.txt"
 
-    @type_checker_integer(arg_index=1, kward="zoom_level")
-    @type_checker_integer(arg_index=2, kward="x")
-    @type_checker_integer(arg_index=3, kward="y")
-    def dem_10b(self, zoom_level: int, x: int, y: int) -> str:
+    @property
+    def dem_10b(self) -> str:
         """
         ## Description:
             地理院タイルの標高タイル（DEM10b）のURLを生成する。
-        ## Args:
-            zoom_level (int): ズームレベル
-            x (int): タイルのX座標
-            y (int): タイルのY座標
-        ## Returns:
-            str: 標高タイルのURL
+            ZoomLevelは1~14の範囲で指定する必要がある。
+        Returns:
+            str: 標高タイルのURL。ズームレベル、X座標、Y座標は後から指定する必要がある。
         """
-        return self._base_url.format(t="dem", z=zoom_level, x=x, y=y)
+        return self._base_url.replace("{t}", "dem")
 
-    @type_checker_integer(arg_index=1, kward="zoom_level")
-    @type_checker_integer(arg_index=2, kward="x")
-    @type_checker_integer(arg_index=3, kward="y")
-    def dem_5a(self, zoom_level: int, x: int, y: int) -> str:
+    @property
+    def dem_5a(self) -> str:
         """
         ## Description:
             地理院タイルの標高タイル（DEM5a）のURLを生成する。
-        ## Args:
-            zoom_level (int): ズームレベル
-            x (int): タイルのX座標
-            y (int): タイルのY座標
-        ## Returns:
-            str: 標高タイルのURL
+            ZoomLevelは1~15の範囲で指定する必要がある。
+        Returns:
+            str: 標高タイルのURL。ズームレベル、X座標、Y座標は後から指定する必要がある。
         """
-        return self._base_url.format(t="dem5a", z=zoom_level, x=x, y=y)
+        return self._base_url.replace("{t}", "dem5a")
 
-    @type_checker_integer(arg_index=1, kward="zoom_level")
-    @type_checker_integer(arg_index=2, kward="x")
-    @type_checker_integer(arg_index=3, kward="y")
-    def dem_5b(self, zoom_level: int, x: int, y: int) -> str:
+    @property
+    def dem_5b(self) -> str:
         """
         ## Description:
             地理院タイルの標高タイル（DEM5b）のURLを生成する。
-        ## Args:
-            zoom_level (int): ズームレベル
-            x (int): タイルのX座標
-            y (int): タイルのY座標
-        ## Returns:
-            str: 標高タイルのURL
+            ZoomLevelは1~15の範囲で指定する必要がある。
+        Returns:
+            str: 標高タイルのURL。ズームレベル、X座標、Y座標は後から指定する必要がある。
         """
-        return self._base_url.format(t="dem5b", z=zoom_level, x=x, y=y)
+        return self._base_url.replace("{t}", "dem5b")
+
+    @property
+    def standard_map(self) -> str:
+        """
+        ## Description:
+            地理院タイルの標準地図タイルのURLを生成する。
+            ZoomLevelは5~18の範囲で指定する必要がある。
+        Returns:
+            str: 標準地図タイルのURL。ズームレベル、X座標、Y座標は後から指定する必要がある。
+        """
+        return self._base_url.replace("{t}", "std").replace(".txt", ".png")
+
+    @property
+    def photo_map(self) -> str:
+        """
+        ## Description:
+            地理院タイルの空中写真タイルのURLを生成する。
+            ZoomLevelは2~18の範囲で指定する必要がある。
+        Returns:
+            str: シームレス写真タイルのURL。ズームレベル、X座標、Y座標は後から指定する
+            必要がある。
+        """
+        return self._base_url.replace("{t}", "seamlessphoto").replace(".txt", ".jpg")
+
+    @property
+    def slope_map(self) -> str:
+        """
+        ## Description:
+            地理院タイルの傾斜タイルのURLを生成する。
+            ZoomLevelは3~15の範囲で指定する必要がある。
+        Returns:
+            str: 傾斜タイルのURL。ズームレベル、X座標、Y座標は後から指定する必要がある。
+        """
+        return self._base_url.replace("{t}", "slopemap").replace(".txt", ".png")
