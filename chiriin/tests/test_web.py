@@ -2,10 +2,15 @@ import datetime
 import os
 import time
 
+import numpy as np
 import pandas as pd
 import pytest
 
-from chiriin.web import fetch_corrected_semidynamic_from_web, fetch_elevation_from_web
+from chiriin.web import (
+    fetch_corrected_semidynamic_from_web,
+    fetch_elevation_from_web,
+    fetch_elevation_tiles_from_web,
+)
 
 test_prefecture_file = os.path.join(
     os.path.dirname(__file__), "data", "prefecture_pnt.csv"
@@ -63,3 +68,18 @@ def test_fetch_corrected_semidynamic_from_web(
     else:
         for coords in corrected_xyz:
             assert coords is None
+
+
+def test_fetch_elevation_tiles_from_web():
+    urls = [
+        "https://cyberjapandata.gsi.go.jp/xyz/dem/14/14569/6169.txt",
+        "https://cyberjapandata.gsi.go.jp/xyz/dem/14/14569/6170.txt",
+        "https://cyberjapandata.gsi.go.jp/xyz/dem/14/14569/6171.txt",
+        "https://cyberjapandata.gsi.go.jp/xyz/dem/14/14569/6172.txt",
+    ]
+    resps = fetch_elevation_tiles_from_web(urls)
+    assert isinstance(resps, dict)
+    for _, ary in resps.items():
+        assert isinstance(ary, np.ndarray)
+        assert ary.shape == (256, 256)
+        assert ary.dtype == "float32"
