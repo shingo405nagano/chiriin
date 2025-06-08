@@ -1,7 +1,7 @@
 import pytest
 import shapely
 
-from chiriin.config import ElevationTileUrl, TileInfo, TileScope
+from chiriin.config import TileInfo, TileScope, TileUrls
 from chiriin.tile import (
     cut_off_points,
     download_tile_array,
@@ -10,15 +10,12 @@ from chiriin.tile import (
     search_tile_info_from_xy,
 )
 
-elev_tile_url = ElevationTileUrl()
+tile_urls = TileUrls()
 
 
 @pytest.mark.parametrize(
     "url, success",
-    [
-        (elev_tile_url.dem_10b(14, 14624, 6017), True),
-        (elev_tile_url.dem_10b(10, 14624, 6017), False),
-    ],
+    [(tile_urls.dem_10b.format(z=14, x=14624, y=6017), True)],
 )
 def test_download_tile_array(url, success):
     if success:
@@ -73,7 +70,7 @@ def test_cut_off_points():
         cut_off_points("invalid")
 
 
-def test_tile_info_from_xy():
+def test_search_tile_info_from_xy():
     """Test the search_tile_info_from_xy function."""
     lon = 140.3158733
     lat = 38.3105495
@@ -89,7 +86,7 @@ def test_tile_info_from_xy():
         preview_y_resol = tile_info.y_resolution
 
 
-def test_tile_info_from_geometry():
+def test_search_tile_info_from_geometry():
     """Test the search_tile_info_from_geometry function."""
     geom = shapely.Point(140.3158733, 38.3105495).buffer(0.1).envelope
     crs = "EPSG:4326"
