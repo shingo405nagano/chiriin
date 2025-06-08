@@ -399,7 +399,7 @@ class _ChiriinDrawer(object):
         # URLから標高タイルを取得し、TileDataオブジェクトを生成
         resps = fetch_elevation_tiles_from_web(urls)
         tile_datasets = []
-        for ary in resps.values():
+        for tile_info, ary in zip(tile_infos, resps.values(), strict=False):
             tile_data = TileData(
                 zoom_level=tile_info.zoom_level,
                 x_idx=tile_info.x_idx,
