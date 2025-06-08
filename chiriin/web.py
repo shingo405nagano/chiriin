@@ -5,6 +5,7 @@ from pprint import pprint
 from typing import Union
 
 import aiohttp
+import numpy as np
 from pydantic import ValidationError
 
 from chiriin.config import XYZ, ChiriinWebApi
@@ -439,3 +440,89 @@ def fetch_distance_and_azimuth_from_web(
     sorted_keys = sorted(_data.keys())
     sorted_distance_azimuth = [_data[key] for key in sorted_keys]
     return sorted_distance_azimuth
+
+
+# ***********************************************************************
+# **************** 地理院APIで標高タイルを取得する ************************
+# ***********************************************************************
+async def fetch_tiles_from_web_async(
+    url_list: list[str],
+    time_sleep: int = 1,
+) -> list[str]:
+    """
+    ## Summary:
+        非同期処理により、地理院APIでタイルを取得する。
+    Args:
+        url_list (list[str]): タイルのURLリスト
+        time_sleep (int): タイルを取得する間隔（秒）。10枚ごとに待機する。
+    Returns:
+        list[str]: タイルのデータリスト。取得できなかった場合は`None`が入る。
+    """
+    results = []
+    async with aiohttp.ClientSession() as session:
+        for i in range(0, len(url_list), 10):
+            batch = url_list[i : i + 10]
+            tasks = [session.get(url, timeout=10) for url in batch]
+            responses = await asyncio.gather(*tasks)
+            for resp in responses:
+                if resp.status == 200:
+                    text = await resp.text()
+                    results.append(text)
+                else:
+                    results.append(None)
+            if i + 10 < len(url_list):
+                time.sleep(time_sleep)
+    return results
+
+
+def elevation_txt_to_array(tile_txt: str, nodata: str = "e") -> np.ndarray:
+    """
+    ## Summary:
+        タイルのテキストデータをNumPy配列に変換する。
+    Args:
+        tile_txt (str):
+            タイルのテキストデータ。各行はカンマ区切りで標高値が記載されている。
+        nodata (str):
+            ノーデータ値を表す文字列。デフォルトは'e'。
+    Returns:
+        np.ndarray:
+            変換されたNumPy配列。ノーデータ値はNaNに変換される。
+    """
+    tile_txt = tile_txt.replace(nodata, "-9999").splitlines()
+    tile_data = [[float(v) for v in line.split(",")] for line in tile_txt]
+    ary = np.array(tile_data, dtype=np.float32)
+    ary[ary == -9999] = np.nan  # -9999をNaNに変換
+    return ary
+
+
+def fetch_elevation_tiles_from_web(
+    url_list: list[str],  #
+    time_sleep: int = 1,
+) -> dict[str, Union[np.ndarray, None]]:
+    """
+    ## Summary:
+        非同期処理により、地理院APIで標高タイルを取得する。
+    Args:
+        url_list (list[str]):
+            タイルのURLリスト。
+            例）https://cyberjapandata.gsi.go.jp/xyz/dem/14/14568/6173.txt
+        time_sleep (int):
+            タイルを取得する間隔（秒）。タイル取得のAPIは特に制限がないが、
+            一応10枚ごとに待機する。
+    Returns:
+        dict[str, Union[np.ndarray, None]]:
+            タイルのURLをキー、取得したNumPy配列を値とする辞書。
+            取得できなかった場合は`None`が入る。
+    """
+    resps = asyncio.run(fetch_tiles_from_web_async(url_list, time_sleep))
+    data = {}
+    for url, txt in zip(url_list, resps, strict=False):
+        if txt:
+            try:
+                data[url] = elevation_txt_to_array(txt)
+            except Exception as e:
+                print(f"Error processing tile from {url}: {e}")
+                data[url] = None
+        else:
+            data[url] = None
+    return data
