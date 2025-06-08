@@ -235,15 +235,15 @@ def search_tile_info_from_geometry(
     # ズームレベルに対応するタイルの座標を取得
     tile_cds = cut_off_points(zoom_level)
     # タイルの"X"インデックスと"Y"インデックスを検索
-    upper_left_x_idx, upper_left_y_idx = lonlat_to_tile_idx(
+    x_min_idx, y_min_idx = lonlat_to_tile_idx(
         upper_left_xy.x, upper_left_xy.y, zoom_level, in_crs="EPSG:3857"
     )
-    lower_right_x_idx, lower_right_y_idx = lonlat_to_tile_idx(
+    x_max_idx, y_max_idx = lonlat_to_tile_idx(
         lower_right_xy.x, lower_right_xy.y, zoom_level, in_crs="EPSG:3857"
     )
     # タイルのインデックスが一致しない場合は、その中間のタイルも考慮する
     tiles = []
-    if upper_left_x_idx == lower_right_x_idx and upper_left_y_idx == lower_right_y_idx:
+    if x_min_idx == x_max_idx and y_min_idx == y_max_idx:
         # 単一のタイルに収まる場合
         tiles.append(
             search_tile_info_from_xy(
@@ -256,8 +256,8 @@ def search_tile_info_from_geometry(
             )
         )
     else:
-        x_idx_range = range(upper_left_x_idx, lower_right_x_idx + 1)
-        y_idx_range = range(upper_left_y_idx, lower_right_y_idx + 1)
+        x_idx_range = range(x_min_idx, x_max_idx + 1)
+        y_idx_range = range(y_min_idx, y_max_idx + 1)
         for x_idx in x_idx_range:
             for y_idx in y_idx_range:
                 tile_info = search_tile_info_from_xy(
