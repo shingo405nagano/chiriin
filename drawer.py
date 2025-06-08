@@ -13,12 +13,18 @@
 import datetime
 from typing import Iterable
 
-from chiriin.config import XY, XYZ, RelativePosition
-from chiriin.formatter import type_checker_iterable
+import pyproj
+
+from chiriin.config import XY, XYZ, RelativePosition, TileData, TileUrls
+from chiriin.formatter import type_checker_elev_type, type_checker_iterable
 from chiriin.mag import get_magnetic_declination
 from chiriin.mesh import MeshCode
 from chiriin.semidynamic import SemiDynamic
-from chiriin.web import fetch_distance_and_azimuth_from_web
+from chiriin.tile import search_tile_info_from_xy
+from chiriin.web import (
+    fetch_distance_and_azimuth_from_web,
+    fetch_elevation_tiles_from_web,
+)
 
 
 class _ChiriinDrawer(object):
@@ -241,6 +247,78 @@ class _ChiriinDrawer(object):
         if len(relative_objs) == 1:
             return relative_objs[0]
         return relative_objs
+
+    @type_checker_elev_type(arg_index=5, kward="elev_type")
+    def get_elevation_tile_xy(
+        self,
+        x: float,
+        y: float,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        elev_type: str,
+        **kwargs,
+    ) -> TileData:
+        """
+        ## Summary:
+            指定した座標とズームレベルに対応する標高タイルの情報を取得します。
+            座標は経緯度（EPSG:4326）として解釈されます。
+        Args:
+            x (float):
+                タイルのx座標
+            y (float):
+                タイルのy座標
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+                - dem10b: 1 ~ 14 の範囲にある整数。
+                - dem5a, dem5b: 1 ~ 15 の範囲にある整数。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。指定しない場合は、経緯度（EPSG:4326）として解釈されます。
+            elev_type (str):
+                タイルの種類を指定する文字列。デフォルトは'dem10b'（10mメッシュ標高タイル）。
+                他には 'dem5a'や'dem5b'（5mメッシュ標高タイル）などがあります。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            TileData:
+                指定された座標とズームレベルに対応するタイルの情報を含むTileDataオブジェクト。
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 標高値の配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        tile_urls = TileUrls()
+        url_template = {
+            "dem10b": tile_urls.dem_10b,
+            "dem5a": tile_urls.dem_5a,
+            "dem5b": tile_urls.dem_5b,
+        }.get(elev_type)
+        tile_info = search_tile_info_from_xy(x, y, zoom_level, in_crs, **kwargs)
+        url = url_template.format(
+            z=tile_info.zoom_level,
+            x=tile_info.x_idx,
+            y=tile_info.y_idx,
+        )
+        resps = fetch_elevation_tiles_from_web([url])
+        ary = resps[url]
+        return TileData(
+            zoom_level=tile_info.zoom_level,
+            x_idx=tile_info.x_idx,
+            y_idx=tile_info.y_idx,
+            tile_scope=tile_info.tile_scope,
+            x_resolution=tile_info.x_resolution,
+            y_resolution=tile_info.y_resolution,
+            crs=tile_info.crs,
+            ary=ary,
+            width=tile_info.width,
+            height=tile_info.height,
+        )
 
 
 # 通常はこのモジュールをインポートするだけで
