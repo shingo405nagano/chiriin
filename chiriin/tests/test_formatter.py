@@ -15,6 +15,7 @@ from chiriin.formatter import (
     type_checker_crs,
     type_checker_datetime,
     type_checker_decimal,
+    type_checker_elev_type,
     type_checker_float,
     type_checker_integer,
     type_checker_iterable,
@@ -306,3 +307,29 @@ def test_type_checker_zoom_level(zl, min_zl, max_zl, success):
     else:
         with pytest.raises(Exception):
             dummy_function(zl)
+
+
+@pytest.mark.parametrize(
+    "value, expected, success",
+    [
+        ("dem10b", "dem10b", True),
+        ("dem5a", "dem5a", True),
+        ("dem5b", "dem5b", True),
+        ("invalid", None, False),
+        (100, None, False),
+    ],
+)
+def test_type_checker_elev_type(value, expected, success):
+    """Test type_checker_elev_type function."""
+
+    @type_checker_elev_type(arg_index=0, kward="value")
+    def dummy_function(value: str):
+        return value
+
+    if success:
+        result = dummy_function(value)
+        assert isinstance(result, str)
+        assert result == expected
+    else:
+        with pytest.raises(Exception):  # noqa: B017
+            dummy_function(value)

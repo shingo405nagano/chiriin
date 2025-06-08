@@ -397,6 +397,47 @@ def type_checker_zoom_level(
     return decorator
 
 
+def type_checker_elev_type(arg_index: int, kward: str):
+    """
+    ## Description:
+        関数の引数が標高タイプを表す文字列か、整数に変換可能かをチェックするデコレーター。
+    ## Args:
+        arg_index (int):
+            位置引数のインデックスを指定。
+        kward (str):
+            キーワード引数の名前を指定。
+    ## Returns:
+        str:
+            標高タイプに変換された引数の値。
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            data = _intermediate(arg_index, kward, *args, **kwargs)
+            data["arg_index"] = arg_index
+            data["kward"] = kward
+            value = data["value"]
+            if isinstance(value, str):
+                value = value.lower()
+                if value in ["dem10b", "dem5a", "dem5b"]:
+                    result = _return_value(value, data, args, kwargs)
+                    return func(*result["args"], **result["kwargs"])
+                else:
+                    raise ValueError(
+                        f"Invalid elevation type '{value}'. Must be 'dem10b', "
+                        "'dem5a', or 'dem5b'."
+                    )
+            else:
+                raise TypeError(
+                    f"Argument '{kward}' must be a string representing elevation "
+                    f"type, got {type(value)}"
+                )
+
+        return wrapper
+
+    return decorator
+
+
 @type_checker_float(arg_index=0, kward="value")
 def float_formatter(value: int | float | str) -> float:
     """
