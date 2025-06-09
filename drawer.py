@@ -16,7 +16,11 @@ from typing import Iterable
 import pyproj
 
 from chiriin.config import XY, XYZ, RelativePosition, TileData, TileUrls
-from chiriin.formatter import type_checker_elev_type, type_checker_iterable
+from chiriin.formatter import (
+    type_checker_elev_type,
+    type_checker_img_type,
+    type_checker_iterable,
+)
 from chiriin.mag import get_magnetic_declination
 from chiriin.mesh import MeshCode
 from chiriin.semidynamic import SemiDynamic
@@ -24,6 +28,7 @@ from chiriin.tile import search_tile_info_from_geometry, search_tile_info_from_x
 from chiriin.web import (
     fetch_distance_and_azimuth_from_web,
     fetch_elevation_tiles_from_web,
+    fetch_img_map_tiles_from_web,
 )
 
 
@@ -293,18 +298,21 @@ class _ChiriinDrawer(object):
                 - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
                 - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
         """
+        # タイルのURLを取得
         tile_urls = TileUrls()
         url_template = {
             "dem10b": tile_urls.dem_10b,
             "dem5a": tile_urls.dem_5a,
             "dem5b": tile_urls.dem_5b,
         }.get(elev_type)
+        self._check_elev_zl(elev_type, zoom_level)
         tile_info = search_tile_info_from_xy(x, y, zoom_level, in_crs, **kwargs)
         url = url_template.format(
             z=tile_info.zoom_level,
             x=tile_info.x_idx,
             y=tile_info.y_idx,
         )
+        # URLから標高タイルを取得
         resps = fetch_elevation_tiles_from_web([url])
         ary = resps[url]
         return TileData(
@@ -320,7 +328,7 @@ class _ChiriinDrawer(object):
             height=tile_info.height,
         )
 
-    @type_checker_elev_type(arg_index=4, kward="elev_type")
+    @type_checker_elev_type(arg_index=5, kward="elev_type")
     def get_elevation_tile_geometry(
         self,
         geometry: Iterable[XY],
@@ -414,6 +422,243 @@ class _ChiriinDrawer(object):
             )
             tile_datasets.append(tile_data)
         return tile_datasets
+
+    def _check_elev_zl(self, elev_type: str, zoom_level: int) -> bool:
+        """
+        ## Summary:
+            指定された標高タイルの種類とズームレベルが有効かどうかをチェックします。
+        Args:
+            elev_type (str):
+                標高タイルの種類を指定する文字列。'dem10b', 'dem5a', 'dem5b'のいずれか。
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+        Returns:
+            bool:
+                ズームレベルが有効な範囲内であればTrueを返します。
+                無効な場合はValueErrorを発生させます。
+        """
+        if elev_type == "dem10b":
+            if 1 <= zoom_level <= 14:
+                return True
+            else:
+                raise ValueError(
+                    "dem10b tiles are only available for zoom levels 1 to 14."
+                )
+        elif elev_type in ["dem5a", "dem5b"]:
+            if 1 <= zoom_level <= 15:
+                return True
+            else:
+                raise ValueError(
+                    "dem5a and dem5b tiles are only available for zoom levels 1 to 15."
+                )
+        else:
+            raise ValueError(
+                f"Unknown elevation type: {elev_type}. "
+                "Please use 'dem10b', 'dem5a', or 'dem5b'."
+            )
+
+    @type_checker_img_type(arg_index=4, kward="image_type")
+    def get_img_tile_xy(
+        self,
+        x: float,
+        y: float,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        image_type: str = "standard",
+        **kwargs,
+    ) -> TileData:
+        """
+        ## Summary:
+            指定した座標とズームレベルに対応する画像タイルの情報を取得します。
+            座標は経緯度（EPSG:4326）として解釈されます。
+        Args:
+            x (float):
+                タイルのx座標（経度）
+            y (float):
+                タイルのy座標（緯度）
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+            in_crs (str | int):
+                入力座標の座標系を指定。
+            image_type (str):
+                タイルの種類を指定する文字列。追加する場合は'config.TileUrls'にURLを定義し、
+                'formatter.py'の"IMG_TYPES"に追加してください。
+                - "standard": 標準地図タイル
+                - "photo": 空中写真タイル
+                - "slope": 傾斜タイル
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            TileData:
+                指定された座標とズームレベルに対応するタイルの情報を含むTileDataオブジェクト。
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 画像データの配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        # タイルのURLを取得
+        tile_urls = TileUrls()
+        url_template = {
+            "standard": tile_urls.standard_map,
+            "photo": tile_urls.photo_map,
+            "slope": tile_urls.slope_map,
+        }.get(image_type, tile_urls.standard_map)
+        assert self._check_img_zl(image_type, zoom_level)
+        tile_info = search_tile_info_from_xy(x, y, zoom_level, in_crs, **kwargs)
+        url = url_template.format(
+            z=tile_info.zoom_level,
+            x=tile_info.x_idx,
+            y=tile_info.y_idx,
+        )
+        # URLからタイルを取得
+        resps = fetch_img_map_tiles_from_web([url])
+        img = resps[url]
+        return TileData(
+            zoom_level=tile_info.zoom_level,
+            x_idx=tile_info.x_idx,
+            y_idx=tile_info.y_idx,
+            tile_scope=tile_info.tile_scope,
+            x_resolution=tile_info.x_resolution,
+            y_resolution=tile_info.y_resolution,
+            crs=tile_info.crs,
+            ary=img,
+            width=tile_info.width,
+            height=tile_info.height,
+        )
+
+    def get_img_tile_geometry(
+        self,
+        geometry: Iterable[XY],
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        image_type: str = "standard",
+        **kwargs,
+    ) -> TileData:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応する画像タイルの情報を取得します。
+            ジオメトリは経緯度（EPSG:4326）として解釈されます。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。指定しない場合は、経緯度（EPSG:4326）として解釈されます。
+            image_type (str):
+                タイルの種類を指定する文字列。デフォルトは'standard'（標準地図タイル）。
+                他には 'photo'や'slope'（空中写真タイル、傾斜タイル）などがあります。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーするタイルの情報を含むTileDataオブジェクトのリスト。
+            各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 画像データの配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        # タイルのURLテンプレートを取得
+        tile_urls = TileUrls()
+        url_template = {
+            "standard": tile_urls.standard_map,
+            "photo": tile_urls.photo_map,
+            "slope": tile_urls.slope_map,
+            "google_satellite": tile_urls.google_satellite,
+        }.get(image_type, tile_urls.standard_map)
+        self._check_img_zl(image_type, zoom_level)
+        # geometryをカバーするタイル情報を取得
+        tile_infos = search_tile_info_from_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            **kwargs,
+        )
+        # URLを生成
+        urls = []
+        for tile_info in tile_infos:
+            url = url_template.format(
+                z=tile_info.zoom_level,
+                x=tile_info.x_idx,
+                y=tile_info.y_idx,
+            )
+            urls.append(url)
+        # URLから画像タイルを取得し、TileDataオブジェクトを生成
+        resps = fetch_img_map_tiles_from_web(urls)
+        tile_datasets = []
+        for tile_info, img in zip(tile_infos, resps.values(), strict=False):
+            tile_data = TileData(
+                zoom_level=tile_info.zoom_level,
+                x_idx=tile_info.x_idx,
+                y_idx=tile_info.y_idx,
+                tile_scope=tile_info.tile_scope,
+                x_resolution=tile_info.x_resolution,
+                y_resolution=tile_info.y_resolution,
+                crs=tile_info.crs,
+                ary=img,
+                width=tile_info.width,
+                height=tile_info.height,
+            )
+            tile_datasets.append(tile_data)
+        return tile_datasets
+
+    def _check_img_zl(self, img_type: str, zoom_level: int) -> bool:
+        """
+        ## Summary:
+            指定された画像タイプとズームレベルが有効かどうかをチェックします。
+        Args:
+            img_type (str):
+                画像の種類を指定する文字列。'standard', 'photo', 'slope'のいずれか。
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+        Returns:
+            bool:
+                ズームレベルが有効な範囲内であればTrueを返します。
+                無効な場合はValueErrorを発生させます。
+        """
+        if img_type == "standard":
+            if 5 <= zoom_level <= 18:
+                return True
+            else:
+                raise ValueError(
+                    "Standard map tiles are only available for zoom levels 5 to 18."
+                )
+        elif img_type in ["photo", "google_satellite"]:
+            if 2 <= zoom_level <= 18:
+                return True
+            else:
+                raise ValueError(
+                    "Photo map tiles are only available for zoom levels 2 to 18."
+                )
+        elif img_type == "slope":
+            if 3 <= zoom_level <= 15:
+                return True
+            else:
+                raise ValueError(
+                    "Slope map tiles are only available for zoom levels 5 to 18."
+                )
+        else:
+            raise ValueError(
+                f"Unknown image type: {img_type}. "
+                "Please use 'standard', 'photo', or 'slope'."
+            )
 
 
 # 通常はこのモジュールをインポートするだけで
