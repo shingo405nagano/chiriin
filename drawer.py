@@ -14,6 +14,7 @@ import datetime
 from typing import Iterable
 
 import pyproj
+import shapely.geometry
 
 from chiriin.config import XY, XYZ, RelativePosition, TileData, TileUrls
 from chiriin.formatter import (
@@ -331,12 +332,12 @@ class _ChiriinDrawer(object):
     @type_checker_elev_type(arg_index=5, kward="elev_type")
     def get_elevation_tile_geometry(
         self,
-        geometry: Iterable[XY],
+        geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
         in_crs: str | int | pyproj.CRS,
         elev_type: str = "dem10b",
         **kwargs,
-    ) -> TileData:
+    ) -> list[TileData]:
         """
         ## Summary:
             指定したジオメトリとズームレベルに対応する標高タイルの情報を取得します。
@@ -422,6 +423,146 @@ class _ChiriinDrawer(object):
             )
             tile_datasets.append(tile_data)
         return tile_datasets
+
+    def get_elevation_tile_mesh_with_dem10b(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応する10mメッシュ標高タイルの
+            情報を取得します。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。1 ~ 14 の範囲にある整数。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーする10mメッシュ標高タイルの情報を含むTileDataオブジェク
+            トのリスト。各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 標高値の配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        return self.get_elevation_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            elev_type="dem10b",
+            **kwargs,
+        )
+
+    def get_elevation_tile_mesh_with_dem5a(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応する5mメッシュ標高タイルの
+            情報を取得します。dem5aのデータソースにはレーザー測量データが
+            使用されており、より高精度な標高情報を提供します。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。1 ~ 15 の範囲にある整数。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーする5mメッシュ標高タイルの情報を含むTileDataオブジェクトの
+            リスト。各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 標高値の配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        return self.get_elevation_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            elev_type="dem5a",
+            **kwargs,
+        )
+
+    def get_elevation_tile_mesh_with_dem5b(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応する5mメッシュ標高タイルの
+            情報を取得します。dem5bのデータソースには写真測量データが使用されており、
+            レーザーよりは精度は劣ります。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。1 ~ 15 の範囲にある整数。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーする5mメッシュ標高タイルの情報を含むTileDataオブジェクトの
+            リスト。各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 標高値の配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        return self.get_elevation_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            elev_type="dem5b",
+            **kwargs,
+        )
 
     def _check_elev_zl(self, elev_type: str, zoom_level: int) -> bool:
         """
@@ -618,6 +759,186 @@ class _ChiriinDrawer(object):
             )
             tile_datasets.append(tile_data)
         return tile_datasets
+
+    def get_img_tile_geometry_with_standard_map(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応する標準地図タイルの情報を取得します。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーする標準地図タイルの情報を含むTileDataオブジェクトのリスト。
+            各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 画像データの配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        return self.get_img_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            image_type="standard",
+            **kwargs,
+        )
+
+    def get_img_tile_geometry_with_photo_map(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応する空中写真タイルの情報を取得します。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーする空中写真タイルの情報を含むTileDataオブジェクトのリスト。
+            各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 画像データの配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        return self.get_img_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            image_type="photo",
+            **kwargs,
+        )
+
+    def get_img_tile_geometry_with_slope_map(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応する傾斜タイルの情報を取得します。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーする傾斜タイルの情報を含むTileDataオブジェクトのリスト。
+            各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 画像データの配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        return self.get_img_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            image_type="slope",
+            **kwargs,
+        )
+
+    def get_img_tile_geometry_with_google_satellite(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応するGoogle衛星画像タイルの情報を取得します。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーするGoogle衛星画像タイルの情報を含むTileDataオブジェクトのリスト。
+            各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 画像データの配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        return self.get_img_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            image_type="google_satellite",
+            **kwargs,
+        )
 
     def _check_img_zl(self, img_type: str, zoom_level: int) -> bool:
         """
