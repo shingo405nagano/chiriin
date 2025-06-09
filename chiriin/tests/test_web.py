@@ -10,6 +10,7 @@ from chiriin.web import (
     fetch_corrected_semidynamic_from_web,
     fetch_elevation_from_web,
     fetch_elevation_tiles_from_web,
+    fetch_img_map_tiles_from_web,
 )
 
 test_prefecture_file = os.path.join(
@@ -83,3 +84,29 @@ def test_fetch_elevation_tiles_from_web():
         assert isinstance(ary, np.ndarray)
         assert ary.shape == (256, 256)
         assert ary.dtype == "float32"
+
+
+@pytest.mark.parametrize(
+    "url, success",
+    [
+        ("https://cyberjapandata.gsi.go.jp/xyz/std/10/912/388.png", True),
+        ("https://cyberjapandata.gsi.go.jp/xyz/std/15/29197/12432.png", True),
+        ("https://cyberjapandata.gsi.go.jp/xyz/std/18/233577/99460.png", True),
+        ("https://cyberjapandata.gsi.go.jp/xyz/std/19/467154/198921.png", False),
+        ("https://cyberjapandata.gsi.go.jp/xyz/slopemap/10/912/388.png", True),
+        ("https://cyberjapandata.gsi.go.jp/xyz/slopemap/15/29197/12432.png", True),
+        ("https://cyberjapandata.gsi.go.jp/xyz/slopemap/18/233577/99460.png", False),
+        ("https://cyberjapandata.gsi.go.jp/xyz/slopemap/19/467154/198921.png", False),
+        ("https://www.google.com", False),
+    ],
+)
+def test_fetch_img_map_tiles_from_web(url, success):
+    resps = fetch_img_map_tiles_from_web([url])
+    assert isinstance(resps, dict)
+    if success:
+        assert url in resps
+        r = resps[url]
+        assert isinstance(r, np.ndarray)
+    else:
+        # URLが存在しない場合、Noneが返されることを確認
+        assert resps[url] is None

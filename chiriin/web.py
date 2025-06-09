@@ -1,11 +1,13 @@
 import asyncio
 import datetime
 import time
+from io import BytesIO
 from pprint import pprint
 from typing import Union
 
 import aiohttp
 import numpy as np
+from PIL import Image
 from pydantic import ValidationError
 
 from chiriin.config import XYZ, ChiriinWebApi
@@ -466,7 +468,10 @@ async def fetch_tiles_from_web_async(
             responses = await asyncio.gather(*tasks)
             for resp in responses:
                 if resp.status == 200:
-                    text = await resp.text()
+                    try:
+                        text = await resp.text()
+                    except:  # noqa: E722
+                        text = await resp.read()
                     results.append(text)
                 else:
                     results.append(None)
@@ -520,6 +525,56 @@ def fetch_elevation_tiles_from_web(
         if txt:
             try:
                 data[url] = elevation_txt_to_array(txt)
+            except Exception as e:
+                print(f"Error processing tile from {url}: {e}")
+                data[url] = None
+        else:
+            data[url] = None
+    return data
+
+
+# ***********************************************************************
+# **************** 地理院APIで標準地図のタイルを取得する *******************
+# ***********************************************************************
+def image_to_array(bytes_data: bytes) -> np.ndarray:
+    """
+    ## Summary:
+        バイトデータから画像をNumPy配列に変換する。
+    Args:
+        bytes_data (bytes):
+            画像のバイトデータ。
+    Returns:
+        np.ndarray: 変換されたNumPy配列。
+    """
+    img = Image.open(BytesIO(bytes_data)).convert("RGB")
+    return np.array(img)
+
+
+def fetch_img_map_tiles_from_web(
+    url_list: list[str],  #
+    time_sleep: int = 1,
+) -> dict[str, Union[np.ndarray, None]]:
+    """
+    ## Summary:
+        非同期処理により、地理院APIで画像タイルを取得する。
+    Args:
+        url_list (list[str]):
+            タイルのURLリスト。
+            例）https://cyberjapandata.gsi.go.jp/xyz/std/14/14568/6173.png
+        time_sleep (int):
+            タイルを取得する間隔（秒）。タイル取得のAPIは特に制限がないが、
+            一応10枚ごとに待機する。
+    Returns:
+        dict[str, Union[np.ndarray, None]]:
+            タイルのURLをキー、取得したNumPy配列を値とする辞書。
+            取得できなかった場合は`None`が入る。
+    """
+    resps = asyncio.run(fetch_tiles_from_web_async(url_list, time_sleep))
+    data = {}
+    for url, bytes_data in zip(url_list, resps, strict=False):
+        if bytes_data:
+            try:
+                data[url] = image_to_array(bytes_data)
             except Exception as e:
                 print(f"Error processing tile from {url}: {e}")
                 data[url] = None
