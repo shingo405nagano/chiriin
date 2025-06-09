@@ -7,6 +7,9 @@ import shapely
 
 from chiriin.utils import dimensional_count
 
+DEM_TYPES = ["dem10b", "dem5a", "dem5b"]
+IMG_TYPES = ["standard", "photo", "slope", "google_satellite"]
+
 
 def datetime_formatter(dt: datetime.datetime | str) -> datetime.datetime:
     """
@@ -419,7 +422,7 @@ def type_checker_elev_type(arg_index: int, kward: str):
             value = data["value"]
             if isinstance(value, str):
                 value = value.lower()
-                if value in ["dem10b", "dem5a", "dem5b"]:
+                if value in DEM_TYPES:
                     result = _return_value(value, data, args, kwargs)
                     return func(*result["args"], **result["kwargs"])
                 else:
@@ -430,6 +433,46 @@ def type_checker_elev_type(arg_index: int, kward: str):
             else:
                 raise TypeError(
                     f"Argument '{kward}' must be a string representing elevation "
+                    f"type, got {type(value)}"
+                )
+
+        return wrapper
+
+    return decorator
+
+
+def type_checker_img_type(arg_index: int, kward: str):
+    """
+    ## Description:
+        関数の引数が地理院のタイルの種類を特定可能かどうかをチェックするデコレーター。
+    ## Args:
+        arg_index (int):
+            位置引数のインデックスを指定。
+        kward (str):
+            キーワード引数の名前を指定。
+    ## Returns:
+        str:
+            画像タイプに変換された引数の値。
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            data = _intermediate(arg_index, kward, *args, **kwargs)
+            data["arg_index"] = arg_index
+            data["kward"] = kward
+            value = data["value"]
+            if isinstance(value, str):
+                value = value.lower()
+                if value in IMG_TYPES:
+                    result = _return_value(value, data, args, kwargs)
+                    return func(*result["args"], **result["kwargs"])
+                else:
+                    raise ValueError(
+                        f"Invalid image type '{value}'. Must be one of {IMG_TYPES}."
+                    )
+            else:
+                raise TypeError(
+                    f"Argument '{kward}' must be a string representing image "
                     f"type, got {type(value)}"
                 )
 

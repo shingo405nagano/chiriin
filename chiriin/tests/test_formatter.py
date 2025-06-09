@@ -17,6 +17,7 @@ from chiriin.formatter import (
     type_checker_decimal,
     type_checker_elev_type,
     type_checker_float,
+    type_checker_img_type,
     type_checker_integer,
     type_checker_iterable,
     type_checker_shapely,
@@ -305,7 +306,7 @@ def test_type_checker_zoom_level(zl, min_zl, max_zl, success):
         assert isinstance(result, int)
         assert min_zl <= result <= max_zl
     else:
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             dummy_function(zl)
 
 
@@ -323,6 +324,32 @@ def test_type_checker_elev_type(value, expected, success):
     """Test type_checker_elev_type function."""
 
     @type_checker_elev_type(arg_index=0, kward="value")
+    def dummy_function(value: str):
+        return value
+
+    if success:
+        result = dummy_function(value)
+        assert isinstance(result, str)
+        assert result == expected
+    else:
+        with pytest.raises(Exception):  # noqa: B017
+            dummy_function(value)
+
+
+@pytest.mark.parametrize(
+    "value, expected, success",
+    [
+        ("standard", "standard", True),
+        ("STANDARD", "standard", True),
+        ("photo", "photo", True),
+        ("slope", "slope", True),
+        ("invalid", None, False),
+    ],
+)
+def test_type_checker_img_type(value, expected, success):
+    """Test type_checker_img_type function."""
+
+    @type_checker_img_type(arg_index=0, kward="value")
     def dummy_function(value: str):
         return value
 
