@@ -1,9 +1,12 @@
 import math
 
+from chiriin.formatter import type_checker_float
 from chiriin.geometries import dms_to_degree_lonlat
 
 
 class MeshCode(object):
+    @type_checker_float(arg_index=1, kward="lon")
+    @type_checker_float(arg_index=2, kward="lat")
     def __init__(self, lon: float, lat: float, is_dms: bool = False):
         if is_dms:
             # 経緯度がDMS形式の場合、度分秒を度に変換

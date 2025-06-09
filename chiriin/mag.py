@@ -2,10 +2,13 @@ import math
 import warnings
 
 from chiriin.config import MAG_DATA
+from chiriin.formatter import type_checker_float
 from chiriin.geometries import dms_to_degree
 from chiriin.mesh import MeshCode
 
 
+@type_checker_float(arg_index=0, kward="lon")
+@type_checker_float(arg_index=1, kward="lat")
 def get_magnetic_declination(lon: float, lat: float, is_dms: bool = False) -> float:
     """
     ## Description:
