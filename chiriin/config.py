@@ -380,6 +380,8 @@ class TileData:
 class TileUrls(object):
     def __init__(self):
         self._base_url = "https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.txt"
+        self._dem_types = ["dem10b", "dem5a", "dem5b"]
+        self._img_types = ["standard", "photo", "slope"]
 
     @property
     def dem_10b(self) -> str:
@@ -447,3 +449,15 @@ class TileUrls(object):
             str: 傾斜タイルのURL。ズームレベル、X座標、Y座標は後から指定する必要がある。
         """
         return self._base_url.replace("{t}", "slopemap").replace(".txt", ".png")
+
+    @property
+    def google_satellite(self) -> str:
+        """
+        ## Description:
+            Googleの衛星画像タイルのURLを生成する。
+            ZoomLevelは5~18の範囲で指定する必要がある。
+        Returns:
+            str: Googleの衛星画像タイルのURL。ズームレベル、X座標、Y座標は後から指定する
+            必要がある。
+        """
+        return "https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga"
