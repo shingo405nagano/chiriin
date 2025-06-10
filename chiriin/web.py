@@ -11,6 +11,7 @@ from PIL import Image
 from pydantic import ValidationError
 
 from chiriin.config import XYZ, ChiriinWebApi
+from chiriin.formatter import iterable_float_formatter, type_checker_iterable
 
 chiriin_web_api = ChiriinWebApi()
 
@@ -90,22 +91,30 @@ async def fetch_elevation_main(
     return results
 
 
-def fetch_elevation_from_web(lons: list[float], lats: list[float]) -> list[float]:
+@type_checker_iterable(arg_index=0, kward="lons")
+@type_checker_iterable(arg_index=1, kward="lats")
+def fetch_elevation_from_web(
+    lon: float | list[float],  #
+    lat: float | list[float],
+) -> list[float]:
     """
     ## Description:
         非同期処理により、地理院APIで標高値を取得する
     Args:
-        lons(list[float]): 10進経度
-        lats(list[float]): 10進緯度
+        lon(float | list[float]): 10進経度
+        lats(float | list[float]): 10進緯度
     Returns:
         list[float]: 標高値
     Examples:
-        >>> lons = [141.272242456]
-        >>> lats = [40.924881316]
-        >>> fetch_elevation_from_web(lons, lats)
+        >>> lon = 141.272242456
+        >>> lat = 40.924881316
+        >>> fetch_elevation_from_web(lon, lat)
         Idx: 0  標高: 84m (lon: 141.272242456, lat: 40.924881316)
         [84]
     """
+    # 経度と緯度の型チェックと変換
+    lons = iterable_float_formatter(lon)
+    lats = iterable_float_formatter(lat)
     idxs = list(range(len(lons)))
     resps_lst = asyncio.run(fetch_elevation_main(idxs, lons, lats))
     _data = {}
@@ -113,6 +122,9 @@ def fetch_elevation_from_web(lons: list[float], lats: list[float]) -> list[float
         _data.update(resp)
     sorted_keys = sorted(_data.keys())
     sorted_elev = [_data[key] for key in sorted_keys]
+    if len(sorted_elev) == 1:
+        # 単一の値の場合はリストではなく値を返す
+        return sorted_elev[0]
     return sorted_elev
 
 
