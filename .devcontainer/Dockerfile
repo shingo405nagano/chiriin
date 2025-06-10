@@ -19,6 +19,7 @@ RUN pip install --upgrade pip\
     && pip install geopandas\
     && pip install pydantic\
     && pip install aiohttp\
+    && pip install  pymupdf\
     && pip install ruff\
     && pip install pytest\
     && pip install pytest-cov\
