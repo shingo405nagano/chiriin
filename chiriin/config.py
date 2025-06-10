@@ -461,3 +461,68 @@ class TileUrls(object):
             必要がある。
         """
         return "https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga"
+
+
+class PaperSize(object):
+    """
+    ## Summary:
+        PDFとして印刷する為にmatplotlibのFigureオブジェクトとして設定するタプルの
+        オブジェクトを計算するクラス。
+    """
+
+    def __init__(self):
+        self.inches_per_cm = 1 / 2.54
+
+    def _calc_size(self, w: float, h: float):
+        fig_width = w * self.inches_per_cm
+        fig_height = h * self.inches_per_cm
+        return (fig_width, fig_height)
+
+    def portrait_a4_size(self, cm_w: float = 21.0, cm_h: float = 29.7) -> tuple[float]:
+        """
+        ## Summary:
+            A4用紙の縦向きのサイズを計算するプロパティ。
+        ## Args:
+            cm_w (float): 幅（センチメートル単位）
+            cm_h (float): 高さ（センチメートル単位）
+        ## Returns:
+            tuple[float]: 幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+        """
+        return self._calc_size(cm_w, cm_h)
+
+    def landscape_a4_size(self, cm_w: float = 29.7, cm_h: float = 21.0) -> tuple[float]:
+        """
+        ## Summary:
+            A4用紙の横向きのサイズを計算するプロパティ。
+        ## Args:
+            cm_w (float): 幅（センチメートル単位）
+            cm_h (float): 高さ（センチメートル単位）
+        ## Returns:
+            tuple[float]: 幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+        """
+        return self._calc_size(cm_w, cm_h)
+
+    def portrait_a3_size(self, cm_w: float = 29.7, cm_h: float = 42.0) -> tuple[float]:
+        """
+        ## Summary:
+            A3用紙の縦向きのサイズを計算するプロパティ。
+        ## Args:
+            cm_w (float): 幅（センチメートル単位）
+            cm_h (float): 高さ（センチメートル単位）
+        ## Returns:
+            tuple[float]: 幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+        """
+        return self._calc_size(cm_w, cm_h)
+
+    @property
+    def landscape_a3_size(self, cm_w: float = 42.0, cm_h: float = 29.7) -> tuple[float]:
+        """
+        ## Summary:
+            A3用紙の横向きのサイズを計算するプロパティ。
+        ## Args:
+            cm_w (float): 幅（センチメートル単位）
+            cm_h (float): 高さ（センチメートル単位）
+        ## Returns:
+            tuple[float]: 幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+        """
+        return self._calc_size(cm_w, cm_h)
