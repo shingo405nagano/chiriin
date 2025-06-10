@@ -38,7 +38,7 @@ def test_magnetic_declination_from_chiriin_drawer(x, y, success):
         (140.087099, "invalid", False),
     ],
 )
-def test_get_mesh_code_from_chiriin_drawer(x, y, success):
+def test_get_chmesh_code_from_chiriin_drawer(x, y, success):
     """Test the get_mesh_code function."""
     if success:
         res = chiriin_drawer.get_mesh_code(x, y)
@@ -75,7 +75,7 @@ def test_semidynamic_2d_from_chiriin_drawer():
         result_y.append(res.y)
 
 
-def test_semidynamic_2d_with_web_api_from_chiriin_drawer():
+def test_fetch_semidynamic_2d_from_chiriin_drawer():
     """Test the semidynamic_2d_with_web_api function."""
     x = 140.769399
     y = 39.769496
@@ -88,7 +88,7 @@ def test_semidynamic_2d_with_web_api_from_chiriin_drawer():
     result_x = []
     result_y = []
     for dt in datetimes:
-        res = chiriin_drawer.semidynamic_2d_with_web_api(
+        res = chiriin_drawer.fetch_semidynamic_2d(
             lon=x,
             lat=y,
             datetime_=dt,
@@ -102,7 +102,7 @@ def test_semidynamic_2d_with_web_api_from_chiriin_drawer():
         result_y.append(res.y)
 
 
-def test_semidynamic_3d_with_web_api_from_chiriin_drawer():
+def test_fetch_semidynamic_3d_from_chiriin_drawer():
     """Test the semidynamic_3d_with_web_api function."""
     x = 140.769399
     y = 39.769496
@@ -116,7 +116,7 @@ def test_semidynamic_3d_with_web_api_from_chiriin_drawer():
     result_x = []
     result_y = []
     for dt in datetimes:
-        res = chiriin_drawer.semidynamic_3d_with_web_api(
+        res = chiriin_drawer.fetch_semidynamic_3d(
             lon=x,
             lat=y,
             altitude=z,
@@ -131,13 +131,13 @@ def test_semidynamic_3d_with_web_api_from_chiriin_drawer():
         result_y.append(res.y)
 
 
-def test_distance_and_azimuth_with_web_api_from_chiriin_drawer():
+def test_fetch_distance_and_azimuth_from_chiriin_drawer():
     """Test the distance_and_azimuth_with_web_api function."""
     x1 = 140.769399
     y1 = 39.769496
     x2 = 140.769500
     y2 = 39.769600
-    res = chiriin_drawer.distance_and_azimuth_with_web_api(
+    res = chiriin_drawer.fetch_distance_and_azimuth(
         lon1=x1,
         lat1=y1,
         lon2=x2,
@@ -146,12 +146,12 @@ def test_distance_and_azimuth_with_web_api_from_chiriin_drawer():
     assert isinstance(res, RelativePosition)
 
 
-def test_get_elevation_tile_xy_from_chiriin_drawer():
+def test_fetch_elevation_tile_xy_from_chiriin_drawer():
     """Test the get_elevation_tile_xy function."""
     x = 140.769399
     y = 39.769496
     zl = 14
-    resps = chiriin_drawer.get_elevation_tile_xy(
+    resps = chiriin_drawer.fetch_elevation_tile_xy(
         x=x, y=y, zoom_level=zl, in_crs="EPSG:4326", elev_type="dem10b"
     )
     assert isinstance(resps, TileData)
@@ -162,18 +162,18 @@ def test_get_elevation_tile_xy_from_chiriin_drawer():
     assert resps.tile_scope.x_min < m_x < resps.tile_scope.x_max
     assert resps.tile_scope.y_min < m_y < resps.tile_scope.y_max
     with pytest.raises(Exception):  # noqa: B017
-        chiriin_drawer.get_elevation_tile_xy(
+        chiriin_drawer.fetch_elevation_tile_xy(
             x=x, y=y, zoom_level=zl + 1, in_crs="EPSG:4326", elev_type="dem10a"
         )
 
 
-def test_get_elevation_tile_geometry_from_chiriin_drawer():
+def test_fetch_elevation_tile_geometry_from_chiriin_drawer():
     """Test the get_elevation_tile_geometry function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 14
-    resps = chiriin_drawer.get_elevation_tile_geometry(
+    resps = chiriin_drawer.fetch_elevation_tile_geometry(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326", elev_type="dem10b"
     )
     assert isinstance(resps, list)
@@ -193,7 +193,7 @@ def test_get_elevation_tile_geometry_from_chiriin_drawer():
     x_distance = 10**100
     y_distance = 10**100
     for i in range(5, 15):
-        resps = chiriin_drawer.get_elevation_tile_geometry(
+        resps = chiriin_drawer.fetch_elevation_tile_geometry(
             geometry=geom,
             zoom_level=i,
             in_crs="EPSG:4326",
@@ -215,13 +215,13 @@ def test_get_elevation_tile_geometry_from_chiriin_drawer():
         assert y_min < m_y < y_max
 
 
-def test_get_elevation_tile_mesh_with_dem10b_from_chiriin_drawer():
+def test_fetch_elevation_tile_mesh_with_dem10b_from_chiriin_drawer():
     """Test the get_elevation_tile_mesh_with_dem10b function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 14
-    resps = chiriin_drawer.get_elevation_tile_mesh_with_dem10b(
+    resps = chiriin_drawer.fetch_elevation_tile_mesh_with_dem10b(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326"
     )
     assert isinstance(resps, list)
@@ -231,18 +231,18 @@ def test_get_elevation_tile_mesh_with_dem10b_from_chiriin_drawer():
     assert isinstance(tile_data.ary, np.ndarray)
     assert tile_data.ary.shape == (256, 256)
     with pytest.raises(ValueError):
-        chiriin_drawer.get_elevation_tile_mesh_with_dem10b(
+        chiriin_drawer.fetch_elevation_tile_mesh_with_dem10b(
             geometry=geom, zoom_level=15, in_crs="EPSG:4326"
         )
 
 
-def test_get_elevation_tile_mesh_with_dem5a_from_chiriin_drawer():
+def test_fetch_elevation_tile_mesh_with_dem5a_from_chiriin_drawer():
     """Test the get_elevation_tile_mesh_with_dem5a function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 15
-    resps = chiriin_drawer.get_elevation_tile_mesh_with_dem5a(
+    resps = chiriin_drawer.fetch_elevation_tile_mesh_with_dem5a(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326"
     )
     assert isinstance(resps, list)
@@ -252,18 +252,18 @@ def test_get_elevation_tile_mesh_with_dem5a_from_chiriin_drawer():
     assert isinstance(tile_data.ary, np.ndarray)
     assert tile_data.ary.shape == (256, 256)
     with pytest.raises(ValueError):
-        chiriin_drawer.get_elevation_tile_mesh_with_dem5a(
+        chiriin_drawer.fetch_elevation_tile_mesh_with_dem5a(
             geometry=geom, zoom_level=16, in_crs="EPSG:4326"
         )
 
 
-def test_get_elevation_tile_mesh_with_dem5b_from_chiriin_drawer():
+def test_fetch_elevation_tile_mesh_with_dem5b_from_chiriin_drawer():
     """Test the get_elevation_tile_mesh_with_dem5b function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 15
-    resps = chiriin_drawer.get_elevation_tile_mesh_with_dem5b(
+    resps = chiriin_drawer.fetch_elevation_tile_mesh_with_dem5b(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326"
     )
     assert isinstance(resps, list)
@@ -274,17 +274,17 @@ def test_get_elevation_tile_mesh_with_dem5b_from_chiriin_drawer():
         assert isinstance(tile_data.ary, np.ndarray)
         assert tile_data.ary.shape == (256, 256)
     with pytest.raises(ValueError):
-        chiriin_drawer.get_elevation_tile_mesh_with_dem5b(
+        chiriin_drawer.fetch_elevation_tile_mesh_with_dem5b(
             geometry=geom, zoom_level=16, in_crs="EPSG:4326"
         )
 
 
-def test_get_img_tile_xy_from_chiriin_drawer():
+def test_fetch_img_tile_xy_from_chiriin_drawer():
     """Test the get_img_tile_xy function."""
     x = 140.769399
     y = 39.769496
     zl = 14
-    resps = chiriin_drawer.get_img_tile_xy(
+    resps = chiriin_drawer.fetch_img_tile_xy(
         x=x, y=y, zoom_level=zl, in_crs="EPSG:4326", image_type="google_satellite"
     )
     assert isinstance(resps, TileData)
@@ -295,18 +295,18 @@ def test_get_img_tile_xy_from_chiriin_drawer():
     assert resps.tile_scope.x_min < m_x < resps.tile_scope.x_max
     assert resps.tile_scope.y_min < m_y < resps.tile_scope.y_max
     with pytest.raises(Exception):  # noqa: B017
-        chiriin_drawer.get_img_tile_xy(
+        chiriin_drawer.fetch_img_tile_xy(
             x=x, y=y, zoom_level=zl + 1, in_crs="EPSG:4326", image_type="osm"
         )
 
 
-def test_get_img_tile_geometry_from_chiriin_drawer():
+def test_fetch_img_tile_geometry_from_chiriin_drawer():
     """Test the get_img_tile_geometry function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 14
-    resps = chiriin_drawer.get_img_tile_geometry(
+    resps = chiriin_drawer.fetch_img_tile_geometry(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326", image_type="google_satellite"
     )
     assert isinstance(resps, list)
@@ -324,13 +324,13 @@ def test_get_img_tile_geometry_from_chiriin_drawer():
     assert y_min < m_y < y_max
 
 
-def test_get_img_tile_geometry_with_standard_map_from_chiriin_drawer():
+def test_fetch_img_tile_geometry_with_standard_map_from_chiriin_drawer():
     """Test the get_img_tile_geometry_with_standard_map function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 14
-    resps = chiriin_drawer.get_img_tile_geometry_with_standard_map(
+    resps = chiriin_drawer.fetch_img_tile_geometry_with_standard_map(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326"
     )
     assert isinstance(resps, list)
@@ -347,18 +347,18 @@ def test_get_img_tile_geometry_with_standard_map_from_chiriin_drawer():
     assert x_min < m_x < x_max
     assert y_min < m_y < y_max
     with pytest.raises(Exception):  # noqa: B017
-        chiriin_drawer.get_img_tile_geometry_with_standard_map(
+        chiriin_drawer.fetch_img_tile_geometry_with_standard_map(
             geometry=geom, zoom_level=20, in_crs="EPSG:4326"
         )
 
 
-def test_get_img_tile_geometry_with_photo_map_from_chiriin_drawer():
+def test_fetch_img_tile_geometry_with_photo_map_from_chiriin_drawer():
     """Test the get_img_tile_geometry_with_photo_map function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 14
-    resps = chiriin_drawer.get_img_tile_geometry_with_photo_map(
+    resps = chiriin_drawer.fetch_img_tile_geometry_with_photo_map(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326"
     )
     assert isinstance(resps, list)
@@ -375,18 +375,18 @@ def test_get_img_tile_geometry_with_photo_map_from_chiriin_drawer():
     assert x_min < m_x < x_max
     assert y_min < m_y < y_max
     with pytest.raises(Exception):  # noqa: B017
-        chiriin_drawer.get_img_tile_geometry_with_photo_map(
+        chiriin_drawer.fetch_img_tile_geometry_with_photo_map(
             geometry=geom, zoom_level=20, in_crs="EPSG:4326"
         )
 
 
-def test_get_img_tile_geometry_with_slope_map_from_chiriin_drawer():
+def test_fetch_img_tile_geometry_with_slope_map_from_chiriin_drawer():
     """Test the get_img_tile_geometry_with_slope_map function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 14
-    resps = chiriin_drawer.get_img_tile_geometry_with_slope_map(
+    resps = chiriin_drawer.fetch_img_tile_geometry_with_slope_map(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326"
     )
     assert isinstance(resps, list)
@@ -403,18 +403,18 @@ def test_get_img_tile_geometry_with_slope_map_from_chiriin_drawer():
     assert x_min < m_x < x_max
     assert y_min < m_y < y_max
     with pytest.raises(Exception):  # noqa: B017
-        chiriin_drawer.get_img_tile_geometry_with_slope_map(
+        chiriin_drawer.fetch_img_tile_geometry_with_slope_map(
             geometry=geom, zoom_level=20, in_crs="EPSG:4326"
         )
 
 
-def test_get_img_tile_geometry_with_google_satellite_from_chiriin_drawer():
+def test_fetch_img_tile_geometry_with_google_satellite_from_chiriin_drawer():
     """Test the get_img_tile_geometry_with_google_satellite function."""
     x = 140.769399
     y = 39.769496
     geom = shapely.Point(x, y).buffer(0.003).envelope
     zl = 14
-    resps = chiriin_drawer.get_img_tile_geometry_with_google_satellite(
+    resps = chiriin_drawer.fetch_img_tile_geometry_with_google_satellite(
         geometry=geom, zoom_level=zl, in_crs="EPSG:4326"
     )
     assert isinstance(resps, list)
@@ -431,6 +431,6 @@ def test_get_img_tile_geometry_with_google_satellite_from_chiriin_drawer():
     assert x_min < m_x < x_max
     assert y_min < m_y < y_max
     with pytest.raises(Exception):  # noqa: B017
-        chiriin_drawer.get_img_tile_geometry_with_google_satellite(
+        chiriin_drawer.fetch_img_tile_geometry_with_google_satellite(
             geometry=geom, zoom_level=20, in_crs="EPSG:4326"
         )

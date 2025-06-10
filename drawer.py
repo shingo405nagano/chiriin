@@ -28,6 +28,7 @@ from chiriin.semidynamic import SemiDynamic
 from chiriin.tile import search_tile_info_from_geometry, search_tile_info_from_xy
 from chiriin.web import (
     fetch_distance_and_azimuth_from_web,
+    fetch_elevation_from_web,
     fetch_elevation_tiles_from_web,
     fetch_img_map_tiles_from_web,
 )
@@ -115,7 +116,7 @@ class _ChiriinDrawer(object):
         return semidynamic.correction_2d(return_to_original)
 
     @staticmethod
-    def semidynamic_2d_with_web_api(
+    def fetch_semidynamic_2d(
         lon: float | Iterable[float],
         lat: float | Iterable[float],
         datetime_: datetime.datetime,
@@ -151,7 +152,7 @@ class _ChiriinDrawer(object):
         return semidynamic.correction_2d_with_web_api(return_to_original)
 
     @staticmethod
-    def semidynamic_3d_with_web_api(
+    def fetch_semidynamic_3d(
         lon: float | Iterable[float],
         lat: float | Iterable[float],
         altitude: float | Iterable[float],
@@ -195,7 +196,7 @@ class _ChiriinDrawer(object):
     @type_checker_iterable(arg_index=1, kward="lat1")
     @type_checker_iterable(arg_index=2, kward="lon2")
     @type_checker_iterable(arg_index=3, kward="lat2")
-    def distance_and_azimuth_with_web_api(
+    def fetch_distance_and_azimuth(
         lon1: float | Iterable[float],
         lat1: float | Iterable[float],
         lon2: float | Iterable[float],
@@ -254,8 +255,30 @@ class _ChiriinDrawer(object):
             return relative_objs[0]
         return relative_objs
 
+    def fetch_elevation(
+        self,  #
+        lon: float | Iterable[float],
+        lat: float | Iterable[float],
+    ) -> float | list[float]:
+        """
+        ## Summary:
+            国土地理院の公開しているWeb APIを使用して、標高を取得します。
+            このメソッドは、10秒間に10回のリクエスト制限があります。
+        Args:
+            lon (float | Iterable[float]):
+                経度（10進法）の数値またはリストなどの反復可能なオブジェクト
+            lat (float | Iterable[float]):
+                緯度（10進法）の数値またはリストなどの反復可能なオブジェクト
+        Returns:
+            float | list[float]:
+                標高（メートル単位）の数値またはリスト
+                - 単一の座標の場合はfloatを返す
+                - 複数の座標の場合はlistを返す
+        """
+        return fetch_elevation_from_web(lon, lat)
+
     @type_checker_elev_type(arg_index=5, kward="elev_type")
-    def get_elevation_tile_xy(
+    def fetch_elevation_tile_xy(
         self,
         x: float,
         y: float,
@@ -330,7 +353,7 @@ class _ChiriinDrawer(object):
         )
 
     @type_checker_elev_type(arg_index=5, kward="elev_type")
-    def get_elevation_tile_geometry(
+    def fetch_elevation_tile_geometry(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
@@ -424,7 +447,7 @@ class _ChiriinDrawer(object):
             tile_datasets.append(tile_data)
         return tile_datasets
 
-    def get_elevation_tile_mesh_with_dem10b(
+    def fetch_elevation_tile_mesh_with_dem10b(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
@@ -462,7 +485,7 @@ class _ChiriinDrawer(object):
                 - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
                 - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
         """
-        return self.get_elevation_tile_geometry(
+        return self.fetch_elevation_tile_geometry(
             geometry=geometry,
             zoom_level=zoom_level,
             in_crs=in_crs,
@@ -470,7 +493,7 @@ class _ChiriinDrawer(object):
             **kwargs,
         )
 
-    def get_elevation_tile_mesh_with_dem5a(
+    def fetch_elevation_tile_mesh_with_dem5a(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
@@ -509,7 +532,7 @@ class _ChiriinDrawer(object):
                 - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
                 - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
         """
-        return self.get_elevation_tile_geometry(
+        return self.fetch_elevation_tile_geometry(
             geometry=geometry,
             zoom_level=zoom_level,
             in_crs=in_crs,
@@ -517,7 +540,7 @@ class _ChiriinDrawer(object):
             **kwargs,
         )
 
-    def get_elevation_tile_mesh_with_dem5b(
+    def fetch_elevation_tile_mesh_with_dem5b(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
@@ -556,7 +579,7 @@ class _ChiriinDrawer(object):
                 - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
                 - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
         """
-        return self.get_elevation_tile_geometry(
+        return self.fetch_elevation_tile_geometry(
             geometry=geometry,
             zoom_level=zoom_level,
             in_crs=in_crs,
@@ -599,7 +622,7 @@ class _ChiriinDrawer(object):
             )
 
     @type_checker_img_type(arg_index=4, kward="image_type")
-    def get_img_tile_xy(
+    def fetch_img_tile_xy(
         self,
         x: float,
         y: float,
@@ -674,7 +697,7 @@ class _ChiriinDrawer(object):
             height=tile_info.height,
         )
 
-    def get_img_tile_geometry(
+    def fetch_img_tile_geometry(
         self,
         geometry: Iterable[XY],
         zoom_level: int,
@@ -760,7 +783,7 @@ class _ChiriinDrawer(object):
             tile_datasets.append(tile_data)
         return tile_datasets
 
-    def get_img_tile_geometry_with_standard_map(
+    def fetch_img_tile_geometry_with_standard_map(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
@@ -797,7 +820,7 @@ class _ChiriinDrawer(object):
                 - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
                 - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
         """
-        return self.get_img_tile_geometry(
+        return self.fetch_img_tile_geometry(
             geometry=geometry,
             zoom_level=zoom_level,
             in_crs=in_crs,
@@ -805,7 +828,7 @@ class _ChiriinDrawer(object):
             **kwargs,
         )
 
-    def get_img_tile_geometry_with_photo_map(
+    def fetch_img_tile_geometry_with_photo_map(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
@@ -842,7 +865,7 @@ class _ChiriinDrawer(object):
                 - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
                 - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
         """
-        return self.get_img_tile_geometry(
+        return self.fetch_img_tile_geometry(
             geometry=geometry,
             zoom_level=zoom_level,
             in_crs=in_crs,
@@ -850,7 +873,7 @@ class _ChiriinDrawer(object):
             **kwargs,
         )
 
-    def get_img_tile_geometry_with_slope_map(
+    def fetch_img_tile_geometry_with_slope_map(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
@@ -887,7 +910,7 @@ class _ChiriinDrawer(object):
                 - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
                 - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
         """
-        return self.get_img_tile_geometry(
+        return self.fetch_img_tile_geometry(
             geometry=geometry,
             zoom_level=zoom_level,
             in_crs=in_crs,
@@ -895,7 +918,7 @@ class _ChiriinDrawer(object):
             **kwargs,
         )
 
-    def get_img_tile_geometry_with_google_satellite(
+    def fetch_img_tile_geometry_with_google_satellite(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
         zoom_level: int,
@@ -932,7 +955,7 @@ class _ChiriinDrawer(object):
                 - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
                 - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
         """
-        return self.get_img_tile_geometry(
+        return self.fetch_img_tile_geometry(
             geometry=geometry,
             zoom_level=zoom_level,
             in_crs=in_crs,
