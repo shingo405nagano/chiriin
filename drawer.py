@@ -258,10 +258,12 @@ class _ChiriinDrawer(object):
             return relative_objs[0]
         return relative_objs
 
+    @type_checker_crs(arg_index=3, kward="in_crs")
     def fetch_elevation(
         self,  #
-        lon: float | Iterable[float],
-        lat: float | Iterable[float],
+        x: float | Iterable[float],
+        y: float | Iterable[float],
+        in_crs: str | int | pyproj.CRS,
     ) -> float | list[float]:
         """
         ## Summary:
@@ -272,13 +274,22 @@ class _ChiriinDrawer(object):
                 経度（10進法）の数値またはリストなどの反復可能なオブジェクト
             lat (float | Iterable[float]):
                 緯度（10進法）の数値またはリストなどの反復可能なオブジェクト
+            in_crs (str | int | pyproj.CRS):
+                入力座標系を指定するオプションの引数。
         Returns:
             float | list[float]:
                 標高（メートル単位）の数値またはリスト
                 - 単一の座標の場合はfloatを返す
                 - 複数の座標の場合はlistを返す
         """
-        return fetch_elevation_from_web(lon, lat)
+        if in_crs.to_epsg() != 4326:
+            xy = transform_xy(x, y, in_crs, "EPSG:4326")
+            if isinstance(xy, list):
+                x = [xy_.x for xy_ in xy]
+                y = [xy_.y for xy_ in xy]
+            else:
+                x, y = xy.x, xy.y
+        return fetch_elevation_from_web(x, y)
 
     @type_checker_elev_type(arg_index=5, kward="elev_type")
     def fetch_elevation_tile_xy(
