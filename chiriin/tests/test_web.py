@@ -10,6 +10,7 @@ from chiriin.web import (
     fetch_corrected_semidynamic_from_web,
     fetch_elevation_from_web,
     fetch_elevation_tiles_from_web,
+    fetch_geoid_height_from_web,
     fetch_img_map_tiles_from_web,
 )
 
@@ -27,10 +28,8 @@ def test_fetch_elevation_from_web():
     assert isinstance(altitude_list, list)
     assert len(altitude_list) == len(LON)
     assert -100 < min(altitude_list) < 10000
-    # Error
-    altitude_list = fetch_elevation_from_web([340.00], [40.00])
-    assert isinstance(altitude_list, list)
-    assert not isinstance(altitude_list[0], float)
+    altitude = fetch_elevation_from_web([340.00], [40.00])
+    assert isinstance(altitude, float)
 
 
 @pytest.mark.parametrize(
@@ -110,3 +109,17 @@ def test_fetch_img_map_tiles_from_web(url, success):
     else:
         # URLが存在しない場合、Noneが返されることを確認
         assert resps[url] is None
+
+
+def test_fetch_geoid_height_from_web():
+    x = [139.6917, 139.6917, 139.6917]
+    y = [35.6895, 35.6895, 35.6895]
+    resps = fetch_geoid_height_from_web(x, y)
+    assert isinstance(resps, list)
+    assert len(resps) == len(x)
+    for resp in resps:
+        assert isinstance(resp, float)
+        assert 0 < resp
+
+    resps = fetch_geoid_height_from_web([140.00], [40.00])
+    assert isinstance(resps, float)

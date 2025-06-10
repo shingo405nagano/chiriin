@@ -146,6 +146,19 @@ def test_fetch_distance_and_azimuth_from_chiriin_drawer():
     assert isinstance(res, RelativePosition)
 
 
+def test_fetch_elevation_from_chiriin_drawer():
+    """Test the fetch_elevation function."""
+    x = 140.769399
+    y = 39.769496
+    res = chiriin_drawer.fetch_elevation(x, y)
+    assert isinstance(res, float)
+    xs = [140.769399, 140.769500]
+    ys = [39.769496, 39.769600]
+    res = chiriin_drawer.fetch_elevation(xs, ys)
+    assert isinstance(res, list)
+    assert all([isinstance(r, float) for r in res])
+
+
 def test_fetch_elevation_tile_xy_from_chiriin_drawer():
     """Test the get_elevation_tile_xy function."""
     x = 140.769399
@@ -434,3 +447,19 @@ def test_fetch_img_tile_geometry_with_google_satellite_from_chiriin_drawer():
         chiriin_drawer.fetch_img_tile_geometry_with_google_satellite(
             geometry=geom, zoom_level=20, in_crs="EPSG:4326"
         )
+
+
+def test_fetch_geoid_height_from_chiriin_drawer():
+    """Test the fetch_geoid_height function."""
+    x = 140.769399
+    y = 39.769496
+    res = chiriin_drawer.fetch_geoid_height(x, y, in_crs="EPSG:4326")
+    assert isinstance(res, float)
+    assert 0 < res
+
+    xs = [140.769399, 140.769500]
+    ys = [39.769496, 39.769600]
+    res = chiriin_drawer.fetch_geoid_height(xs, ys, in_crs="EPSG:4326")
+    assert isinstance(res, list)
+    assert all([isinstance(r, float) for r in res])
+    assert all([r > 0 for r in res])

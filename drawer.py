@@ -18,10 +18,12 @@ import shapely.geometry
 
 from chiriin.config import XY, XYZ, RelativePosition, TileData, TileUrls
 from chiriin.formatter import (
+    type_checker_crs,
     type_checker_elev_type,
     type_checker_img_type,
     type_checker_iterable,
 )
+from chiriin.geometries import transform_xy
 from chiriin.mag import get_magnetic_declination
 from chiriin.mesh import MeshCode
 from chiriin.semidynamic import SemiDynamic
@@ -30,6 +32,7 @@ from chiriin.web import (
     fetch_distance_and_azimuth_from_web,
     fetch_elevation_from_web,
     fetch_elevation_tiles_from_web,
+    fetch_geoid_height_from_web,
     fetch_img_map_tiles_from_web,
 )
 
@@ -1003,6 +1006,40 @@ class _ChiriinDrawer(object):
                 f"Unknown image type: {img_type}. "
                 "Please use 'standard', 'photo', or 'slope'."
             )
+
+    @type_checker_crs(arg_index=4, kward="in_crs")
+    def fetch_geoid_height(
+        self,
+        x: float | list[float],
+        y: float | list[float],
+        in_crs: str | int | pyproj.CRS,
+        year: int = 2011,
+    ) -> float | list[float]:
+        """
+        ## Summary:
+            指定した座標のジオイド高を取得します。
+        Args:
+            x (float | list[float]):
+                ジオイド高を取得する経度（または経度のリスト）。
+            y (float | list[float]):
+                ジオイド高を取得する緯度（または緯度のリスト）。
+            year (int):
+                ジオイドモデルの年。デフォルトは2023年。
+            in_crs (str | int | pyproj.CRS):
+                入力座標系を指定するオプションの引数。
+        Returns:
+            float | list[float]:
+                指定された座標のジオイド高（メートル単位）。
+                単一の座標の場合はfloat、複数の座標の場合はlist[float]を返します。
+        """
+        if in_crs.to_epsg() != 4326:
+            xy = transform_xy(x, y, in_crs, "EPSG:4326")
+            if isinstance(xy, list):
+                x = [xy_.x for xy_ in xy]
+                y = [xy_.y for xy_ in xy]
+            else:
+                x, y = xy.x, xy.y
+        return fetch_geoid_height_from_web(x, y, year)
 
 
 # 通常はこのモジュールをインポートするだけで

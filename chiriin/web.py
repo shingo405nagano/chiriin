@@ -91,8 +91,8 @@ async def fetch_elevation_main(
     return results
 
 
-@type_checker_iterable(arg_index=0, kward="lons")
-@type_checker_iterable(arg_index=1, kward="lats")
+@type_checker_iterable(arg_index=0, kward="lon")
+@type_checker_iterable(arg_index=1, kward="lat")
 def fetch_elevation_from_web(
     lon: float | list[float],  #
     lat: float | list[float],
@@ -593,3 +593,127 @@ def fetch_img_map_tiles_from_web(
         else:
             data[url] = None
     return data
+
+
+# ***********************************************************************
+# ****************** 地理院APIでジオイド高を取得する **********************
+# ***********************************************************************
+async def fetch_geoid_height(
+    session: aiohttp.client.ClientSession,
+    index: int,
+    lon: float,
+    lat: float,
+    year: int = 2011,
+    max_retry: int = 5,
+    time_out: int = 10,
+) -> dict[int, float]:
+    """
+    ## Description:
+        地理院APIで2011年の日本測地系におけるジオイド高を取得する
+    Args:
+        session(aiohttp.client.ClientSession): セッション
+        index(int): インデックス
+        lon(float): 経度
+        lat(float): 緯度
+        year(int): ジオイド高の基準年。2011または2024
+        max_retry(int): リトライ回数
+        time_out(int): タイムアウト
+    Returns:
+        dict[int, float]: {index: geoid_height}
+    """
+    if year not in [2011, 2024]:
+        raise ValueError("year must be either 2011 or 2024")
+    elif year == 2011:
+        url = chiriin_web_api.geoid_height_2011_url().format(lon=lon, lat=lat)
+    else:
+        url = chiriin_web_api.geoid_height_2024_url().format(lon=lon, lat=lat)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"
+    }
+    for _ in range(max_retry):
+        try:
+            async with session.get(url, headers=headers, timeout=time_out) as response:
+                data = await response.json()
+                output_data = data.get("OutputData")
+                if output_data is not None:
+                    geiod_height = float(output_data.get("geoidHeight"))
+                    print(
+                        f"Idx: {index}  ジオイド高: {geiod_height}m "
+                        f"(lon: {lon}, lat: {lat})"
+                    )
+                    return {index: geiod_height}
+                else:
+                    print("サーバーが混みあっています。")
+        except aiohttp.ClientError:
+            print(
+                f"リクエストに失敗しました (Index: {index}, lon: {lon}, "
+                f"lat: {lat})。再試行中..."
+            )
+    return {index: None}
+
+
+async def fetch_geoid_height_main(
+    idxs: list[int],
+    lons: list[float],
+    lats: list[float],
+    year: int = 2011,
+    time_sleep: int = 10,
+) -> list[dict[int, float]]:
+    """
+    ## Description:
+        地理院APIでジオイド高を取得するメイン処理
+    Args:
+        idxs(list[int]): インデックス
+        lons(list[float]): 経度
+        lats(list[float]): 緯度
+        year(int): ジオイド高の基準年。2011または2024
+        time_sleep(int): 待ち時間。地理院APIのリクエスト制限による
+    Returns:
+        list[dict[int, float]]: [{index: geoid_height}]
+    """
+    results = []
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for idx, lon, lat in zip(idxs, lons, lats, strict=False):
+            task = fetch_geoid_height(session, idx, lon, lat, year)
+            tasks.append(task)
+            if len(tasks) == 10:
+                results += await asyncio.gather(*tasks)
+                tasks = []
+                time.sleep(time_sleep)
+        if tasks:
+            results += await asyncio.gather(*tasks)
+    return results
+
+
+@type_checker_iterable(arg_index=0, kward="lon")
+@type_checker_iterable(arg_index=1, kward="lat")
+def fetch_geoid_height_from_web(
+    lon: float | list[float],
+    lat: float | list[float],
+    year: int = 2011,
+) -> list[float]:
+    """
+    ## Description:
+        非同期処理により、地理院APIでジオイド高を取得する
+    Args:
+        lons(list[float]): 10進経度
+        lats(list[float]): 10進緯度
+        year(int): ジオイド高の基準年。2011または2024
+    Returns:
+        list[float]: ジオイド高のリスト
+    """
+    # 経度と緯度の型チェックと変換
+    lons = iterable_float_formatter(lon)
+    lats = iterable_float_formatter(lat)
+    idxs = list(range(len(lons)))
+    resps_lst = asyncio.run(fetch_geoid_height_main(idxs, lons, lats, year))
+    _data = {}
+    for resp in resps_lst:
+        _data.update(resp)
+    sorted_keys = sorted(_data.keys())
+    sorted_geoid_heights = [_data[key] for key in sorted_keys]
+    if len(sorted_geoid_heights) == 1:
+        # 単一の値の場合はリストではなく値を返す
+        return sorted_geoid_heights[0]
+    return sorted_geoid_heights
