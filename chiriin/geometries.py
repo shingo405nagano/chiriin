@@ -363,3 +363,32 @@ def transform_geometry(
         except ValueError as e:  # noqa: E722
             raise ValueError(f"Failed to transform geometry: {e}") from e
     return transformed_geom
+
+
+def estimate_utm_crs(lon: float, lat: float, datum_name: str = "JGD2011") -> pyproj.CRS:
+    """
+    ## Summary:
+        経緯度（度単位）からUTM座標系を推定する。
+    Args:
+        lon (float): 経度
+        lat (float): 緯度
+        datum_name(str): 'WGS 84', 'JGD2011' ...  default='JGD2011'
+    Returns:
+        pyproj.CRS: 推定されたUTM座標系のCRSオブジェクト
+    """
+    try:
+        # Check if the datum_name is valid
+        pyproj.CRS.from_user_input(datum_name)
+    except Exception as e:
+        raise ValueError("Invalid datum_name. Use 'WGS 84', 'JGD2011', etc.") from e
+    # Estimate the UTM CRS
+    aoi = pyproj.aoi.AreaOfInterest(
+        west_lon_degree=lon,
+        south_lat_degree=lat,
+        east_lon_degree=lon,
+        north_lat_degree=lat,
+    )
+    utm_crs_lst = pyproj.database.query_utm_crs_info(
+        datum_name=datum_name, area_of_interest=aoi
+    )
+    return pyproj.CRS.from_epsg(utm_crs_lst[0].code)
