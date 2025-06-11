@@ -57,7 +57,7 @@ class MeshDesign(NamedTuple):
 
 class Delta(NamedTuple):
     """
-    ## Description:
+    ## Summary:
         3次元座標の補正値を格納するクラス。
     """
 
@@ -81,7 +81,7 @@ class SemidynamicCorrectionFiles(object):
 
     def _get_file_path(self, datetime_: datetime.datetime) -> FilePath:
         """
-        ## Description:
+        ## Summary:
             地殻変動補正のパラメーターファイルを探すクラス
         ## Args:
             datetime_ (datetime.datetime): 補正値を取得したい日時
@@ -98,7 +98,7 @@ class SemidynamicCorrectionFiles(object):
 
     def _clean_line(self, line: list[str]) -> list[list[str]]:
         """
-        ## Description:
+        ## Summary:
             セミダイナミック補正のパラメータを読み込む際に、行ごとに読み込んでいるが
             その際に改行文字を削除し、数値に変換できるものは変換する為の関数。
         Args:
@@ -140,7 +140,7 @@ class SemidynamicCorrectionFiles(object):
         self, datetime_: datetime.datetime, encoding: str = "utf-8"
     ) -> pd.DataFrame:
         """
-        ## Description:
+        ## Summary:
             地殻変動補正のパラメーターファイルを読み込む
         ## Args:
             datetime_ (datetime.datetime):
@@ -165,7 +165,7 @@ class SemidynamicCorrectionFiles(object):
 
 def semidynamic_correction_file(datetime_: datetime.datetime) -> Optional[pd.DataFrame]:
     """
-    ## Description:
+    ## Summary:
         地殻変動補正のパラメーターファイルを読み込む
     ## Args:
         datetime_ (datetime.datetime):
@@ -198,7 +198,7 @@ def semidynamic_correction_file(datetime_: datetime.datetime) -> Optional[pd.Dat
 
 class ChiriinWebApi(object):
     """
-    ## Description:
+    ## Summary:
         国土地理院の測量計算サイトで利用可能なAPIのURLを提供するクラス。
         ただし同一IPアドレスからのリクエストは、10秒間で10回までに制限されているため、
         連続してリクエストを送信する場合は注意が必要。
@@ -208,7 +208,7 @@ class ChiriinWebApi(object):
     @staticmethod
     def elevation_url() -> str:
         """
-        ## Description:
+        ## Summary:
             地理院APIで標高値を取得するためのURL。
         ## Returns:
             str:
@@ -229,7 +229,7 @@ class ChiriinWebApi(object):
     @staticmethod
     def geoid_height_2011_url() -> str:
         """
-        ## Description:
+        ## Summary:
             地理院APIで2011年の日本の測地系におけるジオイド高を取得するためのURL。
         ## Returns:
             str:
@@ -246,7 +246,7 @@ class ChiriinWebApi(object):
     @staticmethod
     def geoid_height_2024_url() -> str:
         """
-        ## Description:
+        ## Summary:
             地理院APIで2024年の日本の測地系におけるジオイド高を取得するためのURL。
         ## Returns:
             str:
@@ -263,7 +263,7 @@ class ChiriinWebApi(object):
     @staticmethod
     def distance_and_azimuth_url() -> str:
         """
-        ## Description:
+        ## Summary:
             地理院APIで2点間の距離と方位角を取得するためのURL。
         ## Returns:
             str:
@@ -284,7 +284,7 @@ class ChiriinWebApi(object):
     @staticmethod
     def semidynamic_correction_url() -> str:
         """
-        ## Description:
+        ## Summary:
             地理院APIでセミダイナミック補正を行う為のURL。
         ## Returns:
             str:
@@ -313,7 +313,7 @@ class TileScope(NamedTuple):
 
 class TileInfo(NamedTuple):
     """
-    ## Description:
+    ## Summary:
         タイルの情報を格納するクラス。
     """
 
@@ -345,7 +345,7 @@ TileInfo:
 @dataclass
 class TileData:
     """
-    ## Description:
+    ## Summary:
         タイルのデータを格納するクラス。
     """
 
@@ -362,7 +362,7 @@ class TileData:
 
     def get_gdal_transform(self) -> tuple[float]:
         """
-        ## Description:
+        ## Summary:
             GDALの変換用のタプルを返す。
         ## Returns:
             tuple[float]: GDALの変換用のタプル
@@ -386,7 +386,7 @@ class TileUrls(object):
     @property
     def dem_10b(self) -> str:
         """
-        ## Description:
+        ## Summary:
             地理院タイルの標高タイル（DEM10b）のURLを生成する。
             ZoomLevelは1~14の範囲で指定する必要がある。
         Returns:
@@ -397,7 +397,7 @@ class TileUrls(object):
     @property
     def dem_5a(self) -> str:
         """
-        ## Description:
+        ## Summary:
             地理院タイルの標高タイル（DEM5a）のURLを生成する。
             ZoomLevelは1~15の範囲で指定する必要がある。
         Returns:
@@ -408,7 +408,7 @@ class TileUrls(object):
     @property
     def dem_5b(self) -> str:
         """
-        ## Description:
+        ## Summary:
             地理院タイルの標高タイル（DEM5b）のURLを生成する。
             ZoomLevelは1~15の範囲で指定する必要がある。
         Returns:
@@ -419,7 +419,7 @@ class TileUrls(object):
     @property
     def standard_map(self) -> str:
         """
-        ## Description:
+        ## Summary:
             地理院タイルの標準地図タイルのURLを生成する。
             ZoomLevelは5~18の範囲で指定する必要がある。
         Returns:
@@ -430,7 +430,7 @@ class TileUrls(object):
     @property
     def photo_map(self) -> str:
         """
-        ## Description:
+        ## Summary:
             地理院タイルの空中写真タイルのURLを生成する。
             ZoomLevelは2~18の範囲で指定する必要がある。
         Returns:
@@ -442,7 +442,7 @@ class TileUrls(object):
     @property
     def slope_map(self) -> str:
         """
-        ## Description:
+        ## Summary:
             地理院タイルの傾斜タイルのURLを生成する。
             ZoomLevelは3~15の範囲で指定する必要がある。
         Returns:
@@ -453,7 +453,7 @@ class TileUrls(object):
     @property
     def google_satellite(self) -> str:
         """
-        ## Description:
+        ## Summary:
             Googleの衛星画像タイルのURLを生成する。
             ZoomLevelは5~18の範囲で指定する必要がある。
         Returns:
@@ -461,6 +461,30 @@ class TileUrls(object):
             必要がある。
         """
         return "https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga"
+
+
+class FigureSize(NamedTuple):
+    """
+    ## Summary:
+        matplotlibのFigureオブジェクトのサイズを表すクラス。
+        幅と高さをインチ単位で指定する。
+    """
+
+    width: float
+    height: float
+
+
+class Scope(NamedTuple):
+    """
+    ## Summary:
+        2次元座標の範囲を表すクラス。
+        x_min, y_min, x_max, y_maxの4つの値を持つ。
+    """
+
+    x_min: float
+    y_min: float
+    x_max: float
+    y_max: float
 
 
 class PaperSize(object):
@@ -472,57 +496,76 @@ class PaperSize(object):
 
     def __init__(self):
         self.inches_per_cm = 1 / 2.54
+        self.a4_cm_long = 29.7
+        self.a4_cm_short = 21.0
+        self.a3_cm_long = 42.0
+        self.a3_cm_short = self.a4_cm_long
 
     def _calc_size(self, w: float, h: float):
         fig_width = w * self.inches_per_cm
         fig_height = h * self.inches_per_cm
-        return (fig_width, fig_height)
+        return FigureSize(fig_width, fig_height)
 
-    def portrait_a4_size(self, cm_w: float = 21.0, cm_h: float = 29.7) -> tuple[float]:
+    def portrait_a4_size(self) -> FigureSize:
         """
         ## Summary:
             A4用紙の縦向きのサイズを計算するプロパティ。
-        ## Args:
+        Args:
             cm_w (float): 幅（センチメートル単位）
             cm_h (float): 高さ（センチメートル単位）
-        ## Returns:
-            tuple[float]: 幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+        Returns:
+            FigureSize:
+                A4用紙の縦向きのサイズを計算したタプル。
+                幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+                - width (float): 幅（インチ単位）
+                - height (float): 高さ（インチ単位）
         """
-        return self._calc_size(cm_w, cm_h)
+        return self._calc_size(self.a4_cm_short, self.a4_cm_long)
 
-    def landscape_a4_size(self, cm_w: float = 29.7, cm_h: float = 21.0) -> tuple[float]:
+    def landscape_a4_size(self) -> FigureSize:
         """
         ## Summary:
             A4用紙の横向きのサイズを計算するプロパティ。
-        ## Args:
+        Args:
             cm_w (float): 幅（センチメートル単位）
             cm_h (float): 高さ（センチメートル単位）
-        ## Returns:
-            tuple[float]: 幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+        Returns:
+            FigureSize:
+                A4用紙の縦向きのサイズを計算したタプル。
+                幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+                - width (float): 幅（インチ単位）
+                - height (float): 高さ（インチ単位）
         """
-        return self._calc_size(cm_w, cm_h)
+        return self._calc_size(self.a4_cm_long, self.a4_cm_short)
 
-    def portrait_a3_size(self, cm_w: float = 29.7, cm_h: float = 42.0) -> tuple[float]:
+    def portrait_a3_size(self) -> FigureSize:
         """
         ## Summary:
             A3用紙の縦向きのサイズを計算するプロパティ。
-        ## Args:
+        Args:
             cm_w (float): 幅（センチメートル単位）
             cm_h (float): 高さ（センチメートル単位）
-        ## Returns:
-            tuple[float]: 幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+        Returns:
+            FigureSize:
+                A4用紙の縦向きのサイズを計算したタプル。
+                幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+                - width (float): 幅（インチ単位）
+                - height (float): 高さ（インチ単位）
         """
-        return self._calc_size(cm_w, cm_h)
+        return self._calc_size(self.a3_cm_short, self.a3_cm_long)
 
-    @property
-    def landscape_a3_size(self, cm_w: float = 42.0, cm_h: float = 29.7) -> tuple[float]:
+    def landscape_a3_size(self) -> FigureSize:
         """
         ## Summary:
             A3用紙の横向きのサイズを計算するプロパティ。
-        ## Args:
+        Args:
             cm_w (float): 幅（センチメートル単位）
             cm_h (float): 高さ（センチメートル単位）
-        ## Returns:
-            tuple[float]: 幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+        Returns:
+            FigureSize:
+                A4用紙の縦向きのサイズを計算したタプル。
+                幅と高さをmatplotlibのFigureオブジェクトとして設定できるタプル。
+                - width (float): 幅（インチ単位）
+                - height (float): 高さ（インチ単位）
         """
-        return self._calc_size(cm_w, cm_h)
+        return self._calc_size(self.a3_cm_long, self.a3_cm_short)
