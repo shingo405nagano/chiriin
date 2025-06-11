@@ -126,10 +126,11 @@ def type_checker_float(arg_index: int, kward: str):
             value = data["value"]
             try:
                 value = float(value)
-            except Exception:
+            except Exception as e:
                 raise TypeError(
-                    f"Argument '{kward}' must be a float or convertible to float, got {type(value)}"
-                )  # noqa: B904
+                    f"Argument '{kward}' must be a float or convertible to float"
+                    f", got {type(value)}"
+                ) from e
             else:
                 result = _return_value(value, data, args, kwargs)
                 return func(*result["args"], **result["kwargs"])
@@ -161,10 +162,11 @@ def type_checker_integer(arg_index: int, kward: str):
             value = data["value"]
             try:
                 value = int(value)
-            except Exception:
+            except Exception as e:
                 raise TypeError(
-                    f"Argument '{kward}' must be an integer or convertible to integer, got {type(value)}"
-                )  # noqa: B904
+                    f"Argument '{kward}' must be an integer or convertible to "
+                    f"integer, got {type(value)}"
+                ) from e
             else:
                 result = _return_value(value, data, args, kwargs)
                 return func(*result["args"], **result["kwargs"])
