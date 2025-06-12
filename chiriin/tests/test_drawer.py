@@ -154,7 +154,7 @@ def test_fetch_elevation_from_chiriin_drawer():
     assert isinstance(res, float)
     xs = [140.769399, 140.769500]
     ys = [39.769496, 39.769600]
-    res = chiriin_drawer.fetch_elevation(xs, ys)
+    res = chiriin_drawer.fetch_elevation(xs, ys, in_crs="EPSG:4326")
     assert isinstance(res, list)
     assert all([isinstance(r, float) for r in res])
 

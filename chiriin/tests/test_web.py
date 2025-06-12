@@ -28,8 +28,9 @@ def test_fetch_elevation_from_web():
     assert isinstance(altitude_list, list)
     assert len(altitude_list) == len(LON)
     assert -100 < min(altitude_list) < 10000
-    altitude = fetch_elevation_from_web([340.00], [40.00])
-    assert isinstance(altitude, float)
+    with pytest.raises(Exception):
+        altitude = fetch_elevation_from_web([340.00], [40.00])
+        assert isinstance(altitude, float)
 
 
 @pytest.mark.parametrize(
