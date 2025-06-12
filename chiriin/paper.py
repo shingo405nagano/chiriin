@@ -4,28 +4,52 @@ from typing import Optional
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import numpy as np
 import pymupdf  # noqa: F401
 import pyproj
 import shapely  # noqa: F401
 from matplotlib import pyplot as plt
 from matplotlib.colors import to_hex  # noqa: F401
+from matplotlib.ticker import ScalarFormatter
 from shapely.geometry.base import BaseGeometry
 
-from chiriin.config import XY, FigureSize, PaperSize, Scope  # noqa: F401
-from chiriin.formatter import type_checker_crs, type_checker_float
-from chiriin.geometries import estimate_utm_crs, transform_geometry
+from chiriin.config import FigureSize, PaperSize, Scope, TileUrls
+from chiriin.formatter import crs_formatter, type_checker_crs, type_checker_float
+from chiriin.geometries import (
+    estimate_utm_crs,
+    get_geometry_center,
+    transform_geometry,
+)
 from chiriin.utils import dimensional_count
+from drawer import chiriin_drawer
 
 paper_size = PaperSize()
 
 
 class MapEditor(PaperSize):
+    """
+    ## Summary:
+        地図編集用のクラス。matplotlibを使用して地図を作成し、ジオメトリを描画する。
+    Args:
+        geometry (BaseGeometry | list[BaseGeometry]):
+            描画するジオメトリ。単一のジオメトリまたは複数のジオメトリのリストを指定できます。
+        in_crs (str | int | pyproj.CRS):
+            入力CRS（座標参照系）。デフォルトは"EPSG:4326"（WGS 84）。
+        out_crs (Optional[str | int | pyproj.CRS]):
+            出力CRS。指定しない場合は、UTM座標系を推定します。
+        paper_size (str):
+            使用する紙のサイズ。デフォルトは"portrait_a4"。
+        **kwargs:
+            余白の設定（left_cm, right_cm, bottom_cm, top_cm）を指定できます。
+    """
+
     def __init__(
         self,
         geometry: BaseGeometry | list[BaseGeometry],
         in_crs: str | int | pyproj.CRS = "EPSG:4326",
         out_crs: Optional[str | int | pyproj.CRS] = None,
         paper_size: str = "portrait_a4",
+        describe_crs: bool = True,
         **kwargs,
     ):
         super().__init__()
@@ -33,14 +57,26 @@ class MapEditor(PaperSize):
         self.fig_size = self.get_parper_size(paper_size)
         self.fig, self.ax = self.make_sheet(paper_size)
         # 余白を設定
-        left_cm = kwargs.get("left_cm", 1.0)
-        right_cm = kwargs.get("right_cm", 1.0)
-        bottom_cm = kwargs.get("bottom_cm", 3.0)
-        top_cm = kwargs.get("top_cm", 2.0)
-        self.set_margin(self.fig_size, left_cm, right_cm, bottom_cm, top_cm)
+        self._left_cm = kwargs.get("left_cm", 1.5)
+        self._right_cm = kwargs.get("right_cm", 1.5)
+        self._bottom_cm = kwargs.get("bottom_cm", 2.5)
+        self._top_cm = kwargs.get("top_cm", 2.0)
+        self.set_margin(
+            self.fig_size, self._left_cm, self._right_cm, self._bottom_cm, self._top_cm
+        )
         # 実際に使用する部分のサイズを計算
-        self.map_width = round(self.fig_size.width * 2.54 - (left_cm + right_cm), 2)
-        self.map_height = round(self.fig_size.height * 2.54 - (bottom_cm + top_cm), 2)
+        self.map_width = round(
+            self.fig_size.width * 2.54 - (self._left_cm + self._right_cm), 2
+        )
+        self.map_height = round(
+            self.fig_size.height * 2.54 - (self._bottom_cm + self._top_cm), 2
+        )
+        # out_crsが指定されていない場合はUTM座標系を推定
+        if out_crs is None:
+            center = get_geometry_center(geometry, in_crs=in_crs, out_crs="EPSG:4326")
+            self.out_crs = estimate_utm_crs(center.x, center.y, datum_name="JGD2011")
+        else:
+            self.out_crs = crs_formatter(out_crs)
         # geometryをmetre単位に変換
         self.org_geometry = geometry
         self.metre_geometry = self._transform_geometry(
@@ -54,7 +90,12 @@ class MapEditor(PaperSize):
         else:
             self.scope = Scope(*self.metre_geometry.bounds)
         # 投影可能な縮尺を計算
-        self.valid_scales = self._valid_scales()
+        self.valid_scales = self._calc_valid_scales()
+        if describe_crs:
+            # CRSの種類をマップに記載
+            self._describe_crs(
+                self.out_crs, width_cm=1.5, height_cm=1.8, fontsize=7, va="top"
+            )
 
     def make_sheet(self, size: str = "portrait_a4") -> tuple[plt.Figure, plt.Axes]:
         """
@@ -211,10 +252,18 @@ class MapEditor(PaperSize):
             BaseGeometry | list[BaseGeometry]:
                 変換後のジオメトリ。
         """
-        # CRSをメートル単位に変換
         if out_crs is None:
-            pnt = geometry.centroid
-            out_crs = estimate_utm_crs(pnt.x, pnt.y, datum_name)
+            center = get_geometry_center(geometry, in_crs=in_crs, out_crs="EPSG:4326")
+            out_crs = estimate_utm_crs(center.x, center.y, datum_name=datum_name)
+        else:
+            out_crs = crs_formatter(out_crs)
+        # 図面の作成はメートル単位で行うため、出力CRSがメートル単位であることを確認
+        if out_crs.axis_info[0].unit_name != "metre":
+            # 出力CRSがメートル単位でない場合はエラーを投げる
+            raise ValueError(
+                "The output CRS must use metres as the unit. "
+                f"Received {out_crs.axis_info[0].unit_name}."
+            )
         # 次元数を数える
         dim_count = dimensional_count(geometry)
         if dim_count == 0:
@@ -244,3 +293,237 @@ class MapEditor(PaperSize):
                 f"The number of dimensions sought is 0, 1. Received {dim_count} "
                 "dimensions."
             )
+
+    def set_scope(
+        self,
+        x_min: float,
+        y_min: float,
+        x_max: float,
+        y_max: float,
+    ) -> None:
+        """
+        ## Summary:
+            地図の表示範囲を設定する。これは一番最後に呼び出す事で、縮尺の誤差
+            を最小限に抑えることができる。
+        Args:
+            x_min (float): X軸の最小値。
+            y_min (float): Y軸の最小値。
+            x_max (float): X軸の最大値。
+            y_max (float): Y軸の最大値。
+        Returns:
+            None
+        """
+        self.ax.set_xlim([x_min, x_max])
+        self.ax.set_ylim([y_min, y_max])
+
+    def set_lims(
+        self,
+        x_min: float,
+        x_max: float,
+        y_min: float,
+        y_max: float,
+        major_tick: int = 500,
+        major_grid: bool = True,
+        minor_grid: bool = True,
+    ) -> None:
+        """
+        ## Summary:
+            地図の軸の目盛りとグリッドを調整する。
+        Args:
+            x_min (float): X軸の最小値。
+            x_max (float): X軸の最大値。
+            y_min (float): Y軸の最小値。
+            y_max (float): Y軸の最大値。
+        Returns:
+            None
+        """
+        # XY軸のラベルを設定
+        x_tick_labels = np.arange(x_min, x_max + major_tick, major_tick)
+        y_tick_labels = np.arange(y_min, y_max + major_tick, major_tick)
+        self.ax.set_xticks(x_tick_labels)
+        self.ax.set_yticks(y_tick_labels)
+        # ラベルの位置を調整
+        for label in self.ax.get_xticklabels():
+            label.set_horizontalalignment("left")
+            label.set_fontsize(5)
+        for label in self.ax.get_yticklabels():
+            label.set_verticalalignment("bottom")
+            label.set_rotation(90)
+            label.set_fontsize(5)
+        # 指数表記を無効化
+        xfmt = ScalarFormatter(useOffset=False, useMathText=False)
+        xfmt.set_scientific(False)
+        self.ax.xaxis.set_major_formatter(xfmt)
+        yfmt = ScalarFormatter(useOffset=False, useMathText=False)
+        yfmt.set_scientific(False)
+        self.ax.yaxis.set_major_formatter(yfmt)
+        # Gridの設定
+        if major_grid:
+            self.ax.grid(
+                which="major", color="#949495", linestyle="-", linewidth=0.5, zorder=0
+            )
+        if minor_grid:
+            self.ax.minorticks_on()
+            self.ax.grid(
+                which="minor", color="#dcdddd", linestyle="--", linewidth=0.1, zorder=0
+            )
+
+    def delete_axis(self) -> None:
+        """
+        ## Summary:
+            地図の軸を削除する。
+        Returns:
+            None
+        """
+        self.ax.spines["bottom"].set_visible(False)
+        self.ax.spines["top"].set_visible(False)
+        self.ax.spines["left"].set_visible(False)
+        self.ax.spines["right"].set_visible(False)
+        self.ax.tick_params(
+            axis="both",
+            which="both",
+            bottom=False,
+            top=False,
+            left=False,
+            right=False,
+            labelbottom=False,
+            labelleft=False,
+        )
+
+    def add_txt(
+        self,  #
+        txt: str,
+        width_cm: float = 2.0,
+        height_cm: float = 1.0,
+        **kwargs,
+    ) -> None:
+        """
+        ## Summary:
+            ``Figure``の指定された位置にテキストを追加する。
+        Args:
+            txt (str): 追加するテキスト。
+            width_cm (float): 左下からのテキスト位置（センチメートル単位）。
+            height_cm (float): 左下からのテキスト位置（センチメートル単位）。
+            **kwargs:
+                - ha (str): テキストの水平位置（'left', 'center', 'right'）。
+                - va (str): テキストの垂直位置（'bottom', 'center', 'top'）。
+                - fontsize (int): テキストのフォントサイズ（デフォルトは9）。
+                - bbox (dict): テキストの背景ボックスの設定。
+                                dict(facecolor="white", edgecolor="none", pad=0))
+        Returns:
+            None
+        """
+        x = width_cm / 2.54 / self.fig_size.width
+        y = height_cm / 2.54 / self.fig_size.height
+        self.fig.text(
+            x,
+            y,
+            txt,
+            ha=kwargs.get("ha", "left"),
+            va=kwargs.get("va", "bottom"),
+            fontsize=kwargs.get("fontsize", 9),
+            bbox=kwargs.get("bbox", dict(facecolor="white", edgecolor="none", pad=0)),
+        )
+
+    def _describe_crs(
+        self,  #
+        crs: pyproj.CRS,
+        width_cm: float,
+        height_cm: float,
+        **kwargs,
+    ) -> None:
+        """
+        ## Summary:
+            CRSの情報をFigureに追加する。
+        Args:
+            crs (pyproj.CRS): CRSオブジェクト。
+            width_cm (float): テキストの幅（センチメートル単位）。
+            height_cm (float): テキストの高さ（センチメートル単位）。
+            kwargs:
+                - ha (str): テキストの水平位置（'left', 'center', 'right'）。
+                - va (str): テキストの垂直位置（'bottom', 'center', 'top'）。
+                - fontsize (int): テキストのフォントサイズ（デフォルトは9）。
+                - bbox (dict): テキストの背景ボックスの設定。
+                               dict(facecolor="white", edgecolor="none", pad=0))
+        Returns:
+            None
+        """
+        txt = f"座標参照系  -> {crs.name}\n"
+        txt += f"EPSGコード -> {crs.to_epsg()}\n"
+        scope = Scope(*[round(v, 3) for v in self.scope])
+        txt += f"表示範囲   -> x min: {scope.x_min}, y min: {scope.y_min}, "
+        txt += f"x max: {scope.x_max}, y max: {scope.y_max}"
+        self.add_txt(txt, width_cm, height_cm, **kwargs)
+
+    def add_basemap(
+        self,  #
+        x_min: float,
+        y_min: float,
+        x_max: float,
+        y_max: float,
+        map_name: str = "standard",
+        zl: int = 15,
+    ) -> None:
+        """
+        ## Summary:
+            地図の範囲に該当するタイルを取得して、ベースマップとして追加する。
+        Args:
+            map_name (str):
+                使用する地図の種類。
+                - 'standard': 標準地図（ZL = 5 ~ 18）
+                - 'photo': 航空写真（ZL = 2 ~ 18)
+                - 'slope': 傾斜図（ZL = 3 ~ 15）
+            zl (int):
+                ズームレベル。デフォルトは15。
+        Returns:
+            None
+        """
+        # 地図の種類に応じたタイル取得関数とソースURLを設定
+        source = TileUrls()._chiriin_source
+        data = {
+            "standard": {
+                "func": chiriin_drawer.fetch_img_tile_geometry_with_standard_map,
+                "source": source,
+            },
+            "photo": {
+                "func": chiriin_drawer.fetch_img_tile_geometry_with_photo_map,
+                "source": source,
+            },
+            "slope": {
+                "func": chiriin_drawer.fetch_img_tile_geometry_with_slope_map,
+                "source": source,
+            },
+        }.get(map_name.lower(), None)
+        if data is None:
+            raise ValueError(
+                f"Invalid map name: {map_name}. Choose from 'standard', 'photo', 'slope'."
+            )
+        # タイルの取得範囲を計算
+        metre_bbox = shapely.box(*(x_min, y_min, x_max, y_max))
+        tile_datasets = data["func"](
+            geometry=metre_bbox, in_crs=self.out_crs, zoom_level=zl
+        )
+        for tile_data in tile_datasets:
+            trg_bbox = transform_geometry(
+                shapely.box(*tile_data.tile_scope),
+                in_crs=tile_data.crs,
+                out_crs=self.out_crs,
+            )
+            trg_scope = Scope(*trg_bbox.bounds)
+            self.ax.imshow(
+                tile_data.ary,
+                extent=(
+                    trg_scope.x_min,
+                    trg_scope.x_max,
+                    trg_scope.y_min,
+                    trg_scope.y_max,
+                ),
+            )
+        self.add_txt(
+            data["source"] + f"  Zoom Level: {zl}",
+            width_cm=self._left_cm + 0.3,
+            height_cm=self._bottom_cm + 0.3,
+            fontsize=8,
+            va="bottom",
+            bbox=dict(facecolor="none", edgecolor="none", pad=0),
+        )
