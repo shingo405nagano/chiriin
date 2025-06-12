@@ -514,7 +514,7 @@ def elevation_txt_to_array(tile_txt: str, nodata: str = "e") -> np.ndarray:
 
 def fetch_elevation_tiles_from_web(
     url_list: list[str],  #
-    time_sleep: int = 0.5,
+    time_sleep: int = 0.2,
 ) -> dict[str, Union[np.ndarray, None]]:
     """
     ## Summary:
@@ -564,7 +564,7 @@ def image_to_array(bytes_data: bytes) -> np.ndarray:
 
 def fetch_img_map_tiles_from_web(
     url_list: list[str],  #
-    time_sleep: int = 0.5,
+    time_sleep: int = 0.2,
 ) -> dict[str, Union[np.ndarray, None]]:
     """
     ## Summary:

@@ -5,11 +5,9 @@ from typing import Optional
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
-import pymupdf  # noqa: F401
 import pyproj
-import shapely  # noqa: F401
+import shapely
 from matplotlib import pyplot as plt
-from matplotlib.colors import to_hex  # noqa: F401
 from matplotlib.ticker import ScalarFormatter
 from shapely.geometry.base import BaseGeometry
 
@@ -40,13 +38,39 @@ class MapEditor(PaperSize):
         paper_size (str):
             使用する紙のサイズ。デフォルトは"portrait_a4"。
         **kwargs:
-            余白の設定（left_cm, right_cm, bottom_cm, top_cm）を指定できます。
+            - left_cm (float): 左余白の幅（センチメートル単位）。
+            - right_cm (float): 右余白の幅（センチメートル単位）。
+            - bottom_cm (float): 下余白の高さ（センチメートル単位）。
+            - top_cm (float): 上余白の高さ（センチメートル単位）。
+    Instance Attributes:
+        fig (plt.Figure):
+            作成されたmatplotlibのFigureオブジェクト。
+        ax (plt.Axes):
+            作成されたmatplotlibのAxesオブジェクト。
+        fig_size (FigureSize):
+            使用する紙のサイズをインチ単位で表すタプル。
+        map_width (float):
+            地図の幅（センチメートル単位）。この中には余白は含まれません。
+        map_height (float):
+            地図の高さ（センチメートル単位）。この中には余白は含まれません。
+        out_crs (pyproj.CRS):
+            投影する座標参照系（CRS）。地図作成の為に、座標の単位はメートルでなければなりません。
+        org_geometry (BaseGeometry | list[BaseGeometry]):
+            元のジオメトリ。
+        metre_geometry (BaseGeometry | list[BaseGeometry]):
+            メートル単位に変換されたジオメトリ。
+        scope (Scope):
+            ジオメトリの範囲を表すScopeオブジェクト。
+        valid_scales (dict[int, Scope]):
+            投影可能な縮尺とその範囲を表す辞書。keyは縮尺(int)で、値は``Scope``オブジェクト。
+            Scopeオブジェクトは余白を含まない地図の表示範囲を表します。
     """
 
+    @type_checker_crs(arg_index=2, kward="in_crs")
     def __init__(
         self,
         geometry: BaseGeometry | list[BaseGeometry],
-        in_crs: str | int | pyproj.CRS = "EPSG:4326",
+        in_crs: str | int | pyproj.CRS,
         out_crs: Optional[str | int | pyproj.CRS] = None,
         paper_size: str = "portrait_a4",
         describe_crs: bool = True,
@@ -54,17 +78,18 @@ class MapEditor(PaperSize):
     ):
         super().__init__()
         self._is_iterable = False
+        # 指定された用紙の大きさに合わせたFigureとAxesを作成
         self.fig_size = self.get_parper_size(paper_size)
         self.fig, self.ax = self.make_sheet(paper_size)
         # 余白を設定
-        self._left_cm = kwargs.get("left_cm", 1.5)
-        self._right_cm = kwargs.get("right_cm", 1.5)
+        self._left_cm = kwargs.get("left_cm", 1.2)
+        self._right_cm = kwargs.get("right_cm", 1.2)
         self._bottom_cm = kwargs.get("bottom_cm", 2.5)
         self._top_cm = kwargs.get("top_cm", 2.0)
         self.set_margin(
             self.fig_size, self._left_cm, self._right_cm, self._bottom_cm, self._top_cm
         )
-        # 実際に使用する部分のサイズを計算
+        # 実際に地図として使用する部分の幅と高さを計算
         self.map_width = round(
             self.fig_size.width * 2.54 - (self._left_cm + self._right_cm), 2
         )
@@ -72,24 +97,28 @@ class MapEditor(PaperSize):
             self.fig_size.height * 2.54 - (self._bottom_cm + self._top_cm), 2
         )
         # out_crsが指定されていない場合はUTM座標系を推定
+        self.in_crs = in_crs
         if out_crs is None:
             center = get_geometry_center(geometry, in_crs=in_crs, out_crs="EPSG:4326")
             self.out_crs = estimate_utm_crs(center.x, center.y, datum_name="JGD2011")
         else:
             self.out_crs = crs_formatter(out_crs)
-        # geometryをmetre単位に変換
+        assert self.out_crs.axis_info[0].unit_name == "metre", (
+            "The output CRS must use metres as the unit. "
+            f"Received {self.out_crs.axis_info[0].unit_name}."
+        )
+        # ``geometry``を"metre"単位に変換し、その範囲を取得する
         self.org_geometry = geometry
         self.metre_geometry = self._transform_geometry(
             geometry=geometry,
             in_crs=in_crs,
             out_crs=out_crs,
         )
-        # ``geometry``の範囲を取得
         if self._is_iterable:
-            self.scope = Scope(*shapely.union_all(self.metre_geometry).bounds)
+            self.geom_scope = Scope(*shapely.union_all(self.metre_geometry).bounds)
         else:
-            self.scope = Scope(*self.metre_geometry.bounds)
-        # 投影可能な縮尺を計算
+            self.geom_scope = Scope(*self.metre_geometry.bounds)
+        # 地図の範囲と``geometry``の範囲から、投影可能な縮尺を計算する
         self.valid_scales = self._calc_valid_scales()
         if describe_crs:
             # CRSの種類をマップに記載
@@ -188,7 +217,7 @@ class MapEditor(PaperSize):
     def _calc_valid_scales(self) -> dict[int, Scope]:
         """
         ## Summary:
-            投影可能な縮尺を計算する。
+            用紙のサイズとジオメトリの範囲から、投影可能な縮尺を計算する。
         Returns:
             dict[int, Scope]:
                 投影可能な縮尺とその範囲を表す辞書。
@@ -205,14 +234,14 @@ class MapEditor(PaperSize):
             # 1cmあたりのメートル数を計算
             unit = scale / 100.0
             # geometryの範囲を取得
-            geom_width = self.scope.x_max - self.scope.x_min
-            geom_height = self.scope.y_max - self.scope.y_min
+            geom_width = self.geom_scope.x_max - self.geom_scope.x_min
+            geom_height = self.geom_scope.y_max - self.geom_scope.y_min
             # geometry が設定された範囲に収まるかを確認
             checked_width = geom_width <= unit * self.map_width
             checked_height = geom_height <= unit * self.map_height
             if checked_width and checked_height:
                 # 有効な縮尺ならば、geometry.boundsの中心を取得し、マップ範囲を計算する
-                pnt = shapely.box(*self.scope).centroid
+                pnt = shapely.box(*self.geom_scope).centroid
                 x_unit = unit * self.map_width / 2
                 y_unit = unit * self.map_height / 2
                 x_min = pnt.x + x_unit * -1
@@ -221,10 +250,10 @@ class MapEditor(PaperSize):
                 y_max = pnt.y + y_unit
                 scope = Scope(*[round(v, 2) for v in [x_min, y_min, x_max, y_max]])
                 try:
-                    assert scope.x_min <= self.scope.x_min
-                    assert self.scope.x_max <= scope.x_max
-                    assert scope.y_min <= self.scope.y_min
-                    assert self.scope.y_max <= scope.y_max
+                    assert scope.x_min <= self.geom_scope.x_min
+                    assert self.geom_scope.x_max <= scope.x_max
+                    assert scope.y_min <= self.geom_scope.y_min
+                    assert self.geom_scope.y_max <= scope.y_max
                 except AssertionError:
                     # geometryの範囲が設定された範囲に収まらない場合はスキップ
                     continue
@@ -304,7 +333,8 @@ class MapEditor(PaperSize):
         """
         ## Summary:
             地図の表示範囲を設定する。これは一番最後に呼び出す事で、縮尺の誤差
-            を最小限に抑えることができる。
+            を最小限に抑えることができる。ここで指定する範囲は、``self._calc_valid_scales()``
+            で計算された範囲を利用する事で、印刷時の縮尺の誤差を最小限に抑えることができる。
         Args:
             x_min (float): X軸の最小値。
             y_min (float): Y軸の最小値。
@@ -319,8 +349,8 @@ class MapEditor(PaperSize):
     def set_lims(
         self,
         x_min: float,
-        x_max: float,
         y_min: float,
+        x_max: float,
         y_max: float,
         major_tick: int = 500,
         major_grid: bool = True,
@@ -328,7 +358,9 @@ class MapEditor(PaperSize):
     ) -> None:
         """
         ## Summary:
-            地図の軸の目盛りとグリッドを調整する。
+            地図の表示範囲とXY軸の目盛りを設定する。地図の表示範囲は、``set_scope()``で
+            設定された範囲を利用する。目盛りは指定された間隔で設定され、グリッド線も
+            オプションで表示される。
         Args:
             x_min (float): X軸の最小値。
             x_max (float): X軸の最大値。
@@ -371,7 +403,7 @@ class MapEditor(PaperSize):
     def delete_axis(self) -> None:
         """
         ## Summary:
-            地図の軸を削除する。
+            地図の軸を削除する。これにより、地図の表示がよりクリーンになります。
         Returns:
             None
         """
@@ -415,14 +447,20 @@ class MapEditor(PaperSize):
         """
         x = width_cm / 2.54 / self.fig_size.width
         y = height_cm / 2.54 / self.fig_size.height
+        options = {
+            "ha": kwargs.get("ha", "left"),
+            "va": kwargs.get("va", "bottom"),
+            "fontsize": kwargs.get("fontsize", 9),
+            "bbox": kwargs.get("bbox", dict(facecolor="white", edgecolor="none", pad=0)),
+        }
+        if kwargs.get("url"):
+            # URLが指定されている場合は、リンクを追加
+            options["url"] = kwargs["url"]
         self.fig.text(
             x,
             y,
             txt,
-            ha=kwargs.get("ha", "left"),
-            va=kwargs.get("va", "bottom"),
-            fontsize=kwargs.get("fontsize", 9),
-            bbox=kwargs.get("bbox", dict(facecolor="white", edgecolor="none", pad=0)),
+            **options,
         )
 
     def _describe_crs(
@@ -450,9 +488,9 @@ class MapEditor(PaperSize):
         """
         txt = f"座標参照系  -> {crs.name}\n"
         txt += f"EPSGコード -> {crs.to_epsg()}\n"
-        scope = Scope(*[round(v, 3) for v in self.scope])
-        txt += f"表示範囲   -> x min: {scope.x_min}, y min: {scope.y_min}, "
-        txt += f"x max: {scope.x_max}, y max: {scope.y_max}"
+        scope = Scope(*[round(v, 3) for v in self.geom_scope])
+        txt += f"表示範囲   -> x min: {scope.x_min},  y min: {scope.y_min},  "
+        txt += f"x max: {scope.x_max},  y max: {scope.y_max}"
         self.add_txt(txt, width_cm, height_cm, **kwargs)
 
     def add_basemap(
@@ -467,10 +505,12 @@ class MapEditor(PaperSize):
         """
         ## Summary:
             地図の範囲に該当するタイルを取得して、ベースマップとして追加する。
+            大きな範囲を指定し、ZoomLevelを上げるとデータ取得に時間がかかる場合があります。
         Args:
             map_name (str):
                 使用する地図の種類。
                 - 'standard': 標準地図（ZL = 5 ~ 18）
+                - 'pale': 淡色地図（ZL = 5 ~ 18）
                 - 'photo': 航空写真（ZL = 2 ~ 18)
                 - 'slope': 傾斜図（ZL = 3 ~ 15）
             zl (int):
@@ -483,6 +523,10 @@ class MapEditor(PaperSize):
         data = {
             "standard": {
                 "func": chiriin_drawer.fetch_img_tile_geometry_with_standard_map,
+                "source": source,
+            },
+            "pale": {
+                "func": chiriin_drawer.fetch_img_tile_geometry_with_pale_map,
                 "source": source,
             },
             "photo": {
@@ -526,4 +570,5 @@ class MapEditor(PaperSize):
             fontsize=8,
             va="bottom",
             bbox=dict(facecolor="none", edgecolor="none", pad=0),
+            url="https://maps.gsi.go.jp/development/ichiran.html",
         )
