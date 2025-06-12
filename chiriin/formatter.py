@@ -564,3 +564,27 @@ def iterable_decimalize_formatter(values: Iterable) -> list[Decimal]:
     count = dimensional_count(values)
     assert count == 1, f"Expected one-dimensional iterable, got {count}D iterable."
     return [Decimal(f"{float(value)}") for value in values]
+
+
+def crs_formatter(crs: str | int | pyproj.CRS) -> pyproj.CRS:
+    """
+    ## Description:
+        CRS（座標参照系）をフォーマットする関数。
+        引数がCRSオブジェクト、文字列、または整数であることを確認します。
+    ## Args:
+        crs (str | int | pyproj.CRS):
+            CRSを表す文字列、整数、またはpyproj.CRSオブジェクト。
+    ## Returns:
+        pyproj.CRS:
+            フォーマットされたCRSオブジェクト。
+    """
+    if isinstance(crs, pyproj.CRS):
+        return crs
+    elif isinstance(crs, str):
+        return pyproj.CRS(crs)
+    elif isinstance(crs, int):
+        return pyproj.CRS.from_epsg(crs)
+    else:
+        raise TypeError(
+            f"Expected CRS to be a string, integer, or pyproj.CRS object, got {type(crs)}"
+        )
