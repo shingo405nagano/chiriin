@@ -145,6 +145,8 @@ def search_tile_info_from_xy(
             - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
             - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
             - cut_off_points_lst(list[float]): 'cut_off_points'で取得した座標のリスト
+            - x_idx(int): タイルのx座標
+            - y_idx(int): タイルのy座標
     Returns:
         TileInfo:
             指定された座標とズームレベルに対応するタイルの情報を含むTileInfoオブジェクト。
@@ -160,17 +162,21 @@ def search_tile_info_from_xy(
             - in_crs(pyproj.CRS): 入力座標系を表すpyproj.CRSオブジェクト。
                                   デフォルトはEPSG:3857（Web Mercator）です。
     """
-    if in_crs.to_epsg() != 3857:
-        # 入力座標系がWeb Mercatorでない場合、変換を行う
-        xy = transform_xy(x, y, in_crs, "EPSG:3857")
-    else:
-        xy = XY(x, y)
     # ズームレベルに対応するタイルの座標を取得
     tile_cds = kwargs.get("cut_off_points_lst")
     if tile_cds is None:
         tile_cds = cut_off_points(zoom_level)
     # タイルの"X"インデックスと"Y"インデックスを検索
-    x_idx, y_idx = lonlat_to_tile_idx(xy.x, xy.y, zoom_level, in_crs="EPSG:3857")
+    if "x_idx" in kwargs and "y_idx" in kwargs:
+        x_idx = kwargs["x_idx"]
+        y_idx = kwargs["y_idx"]
+    else:
+        if in_crs.to_epsg() != 3857:
+            # 入力座標系がWeb Mercatorでない場合、変換を行う
+            xy = transform_xy(x, y, in_crs, "EPSG:3857")
+        else:
+            xy = XY(x, y)
+        x_idx, y_idx = lonlat_to_tile_idx(xy.x, xy.y, zoom_level, in_crs="EPSG:3857")
     # タイルの範囲を計算
     tile_scope = TileScope(
         x_min=tile_cds["X"][x_idx],
@@ -256,17 +262,20 @@ def search_tile_info_from_geometry(
             )
         )
     else:
-        x_idx_range = range(x_min_idx, x_max_idx + 1)
-        y_idx_range = range(y_min_idx, y_max_idx + 1)
-        for x_idx in x_idx_range:
-            for y_idx in y_idx_range:
-                tile_info = search_tile_info_from_xy(
-                    tile_cds["X"][x_idx],
-                    tile_cds["Y"][y_idx],
-                    zoom_level,
-                    in_crs=pyproj.CRS.from_epsg(3857),
-                    cut_off_points_lst=tile_cds,
-                    **kwargs,
-                )
-                tiles.append(tile_info)
+        x_idxs, y_idxs = np.meshgrid(
+            range(x_min_idx, x_max_idx + 1),  #
+            range(y_min_idx, y_max_idx + 1),
+        )
+        for x_idx, y_idx in zip(x_idxs.flatten(), y_idxs.flatten(), strict=False):
+            tile_info = search_tile_info_from_xy(
+                0.0,  # x_idxで指定されるので、ここでは0.0を使用
+                0.0,  # x_idxで指定されるので、ここでは0.0を使用
+                zoom_level,
+                in_crs=pyproj.CRS.from_epsg(3857),
+                cut_off_points_lst=tile_cds,
+                x_idx=x_idx,
+                y_idx=y_idx,
+                **kwargs,
+            )
+            tiles.append(tile_info)
     return tiles
