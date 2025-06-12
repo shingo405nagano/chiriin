@@ -360,7 +360,7 @@ class TileData:
     width: int = 256
     height: int = 256
 
-    def get_gdal_transform(self) -> tuple[float]:
+    def get_gdal_transform(self) -> tuple[float, float, float, float, float, float]:
         """
         ## Summary:
             GDALの変換用のタプルを返す。
@@ -382,6 +382,7 @@ class TileUrls(object):
         self._base_url = "https://cyberjapandata.gsi.go.jp/xyz/{t}/{z}/{x}/{y}.txt"
         self._dem_types = ["dem10b", "dem5a", "dem5b"]
         self._img_types = ["standard", "photo", "slope"]
+        self._chiriin_source = "出典：国土地理院 地理院タイル"
 
     @property
     def dem_10b(self) -> str:
