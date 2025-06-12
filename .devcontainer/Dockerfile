@@ -25,4 +25,5 @@ RUN pip install --upgrade pip\
     && pip install ruff\
     && pip install pytest\
     && pip install pytest-cov\
-    && pip install pytest-xdist
+    && pip install pytest-xdist\
+    && pip install pytest-html
