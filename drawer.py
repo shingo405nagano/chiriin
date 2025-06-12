@@ -757,6 +757,7 @@ class _ChiriinDrawer(object):
         tile_urls = TileUrls()
         url_template = {
             "standard": tile_urls.standard_map,
+            "pale": tile_urls.pale_map,
             "photo": tile_urls.photo_map,
             "slope": tile_urls.slope_map,
             "google_satellite": tile_urls.google_satellite,
@@ -813,7 +814,7 @@ class _ChiriinDrawer(object):
                 例: shapely.geometry.Point, shapely.geometry.Polygonなど、
                 `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
             zoom_level (int):
-                ズームレベルを指定する整数値。
+                ズームレベルを指定する整数値。Zoomレベルは5から18の範囲で指定します。
             in_crs (str | int):
                 入力座標系を指定するオプションの引数。
             **kwargs:
@@ -842,6 +843,51 @@ class _ChiriinDrawer(object):
             **kwargs,
         )
 
+    def fetch_img_tile_geometry_with_pale_map(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        """
+        ## Summary:
+            指定したジオメトリとズームレベルに対応する淡色地図タイルの情報を取得します。
+        Args:
+            geometry (shapely.geometry.base.BaseGeometry):
+                タイルを検索するためのジオメトリ。
+                例: shapely.geometry.Point, shapely.geometry.Polygonなど、
+                `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
+            zoom_level (int):
+                ズームレベルを指定する整数値。Zoomレベルは5から18の範囲で指定します。
+            in_crs (str | int):
+                入力座標系を指定するオプションの引数。
+            **kwargs:
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        Returns:
+            `geometry`をカバーするパレ地図タイルの情報を含むTileDataオブジェクトのリスト。
+            各TileDataオブジェクトは以下の属性を持ちます:
+            list[TileData]:
+                - zoom_level(int): ズームレベル
+                - x_idx(int): タイルのx座標
+                - y_idx(int): タイルのy座標
+                - tile_scope(TileScope): タイルの範囲を表す(x_min, y_min, x_max, y_max)
+                - x_resolution(float): タイルのx方向の解像度
+                - y_resolution(float): タイルのy方向の解像度
+                - crs(pyproj.CRS): タイルの座標系を表すpyproj.CRSオブジェクト。
+                - ary(numpy.ndarray): 画像データの配列。
+                - width(int): タイルの幅（ピクセル単位）。デフォルトは256。
+                - height(int): タイルの高さ（ピクセル単位）。デフォルトは256。
+        """
+        return self.fetch_img_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            image_type="pale",
+            **kwargs,
+        )
+
     def fetch_img_tile_geometry_with_photo_map(
         self,
         geometry: shapely.geometry.base.BaseGeometry,
@@ -858,7 +904,7 @@ class _ChiriinDrawer(object):
                 例: shapely.geometry.Point, shapely.geometry.Polygonなど、
                 `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
             zoom_level (int):
-                ズームレベルを指定する整数値。
+                ズームレベルを指定する整数値。Zoomレベルは2から18の範囲で指定します。
             in_crs (str | int):
                 入力座標系を指定するオプションの引数。
             **kwargs:
@@ -903,7 +949,7 @@ class _ChiriinDrawer(object):
                 例: shapely.geometry.Point, shapely.geometry.Polygonなど、
                 `geometry.bounds`でgeometryの範囲を取得できるオブジェクト。
             zoom_level (int):
-                ズームレベルを指定する整数値。
+                ズームレベルを指定する整数値。Zoomレベルは3から15の範囲で指定します。
             in_crs (str | int):
                 入力座標系を指定するオプションの引数。
             **kwargs:
@@ -991,7 +1037,7 @@ class _ChiriinDrawer(object):
                 ズームレベルが有効な範囲内であればTrueを返します。
                 無効な場合はValueErrorを発生させます。
         """
-        if img_type == "standard":
+        if img_type in ["standard", "pale"]:
             if 5 <= zoom_level <= 18:
                 return True
             else:

@@ -429,6 +429,17 @@ class TileUrls(object):
         return self._base_url.replace("{t}", "std").replace(".txt", ".png")
 
     @property
+    def pale_map(self) -> str:
+        """
+        ## Summary:
+            地理院タイルの淡色地図タイルのURLを生成する。
+            ZoomLevelは5~18の範囲で指定する必要がある。
+        Returns:
+            str: 淡色地図タイルのURL。ズームレベル、X座標、Y座標は後から指定する必要がある。
+        """
+        return self._base_url.replace("{t}", "pale").replace(".txt", ".png")
+
+    @property
     def photo_map(self) -> str:
         """
         ## Summary:
