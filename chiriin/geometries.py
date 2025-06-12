@@ -9,8 +9,9 @@ from typing import Iterable
 
 import pyproj
 import shapely
+from shapely.geometry.base import BaseGeometry
 
-from chiriin.config import XY
+from chiriin.config import XY, Scope
 from chiriin.formatter import type_checker_crs, type_checker_float, type_checker_shapely
 from chiriin.utils import dimensional_count
 
@@ -158,9 +159,9 @@ def _dms_to_degree_lonlat_list(
     """
     assert len(lon_list) == len(lat_list), (
         "lon_list and lat_list must have the same length."
-    )  # type: ignore
-    assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."  # type: ignore
-    assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."  # type: ignore
+    )
+    assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."
+    assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."
     result = []
     for lon, lat in zip(lon_list, lat_list, strict=False):
         xy = _dms_to_degree_lonlat(lon, lat, digits, decimal_obj)
@@ -193,8 +194,8 @@ def dms_to_degree_lonlat(
             - y: float | Decimal
     """
     if isinstance(lon, Iterable):
-        return _dms_to_degree_lonlat_list(lon, lat, decimal_obj, digits)  # type: ignore
-    return _dms_to_degree_lonlat(lon, lat, digits, decimal_obj)  # type: ignore
+        return _dms_to_degree_lonlat_list(lon, lat, decimal_obj, digits)
+    return _dms_to_degree_lonlat(lon, lat, digits, decimal_obj)
 
 
 def _degree_to_dms_lonlat(
@@ -258,9 +259,9 @@ def _degree_to_dms_lonlat_list(
     """
     assert len(lon_list) == len(lat_list), (
         "lon_list and lat_list must have the same length."
-    )  # type: ignore
-    assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."  # type: ignore
-    assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."  # type: ignore
+    )
+    assert dimensional_count(lon_list) == 1, "lon_list must be a 1-dimensional iterable."
+    assert dimensional_count(lat_list) == 1, "lat_list must be a 1-dimensional iterable."
     result = []
     for lon, lat in zip(lon_list, lat_list, strict=False):
         xy = _degree_to_dms_lonlat(lon, lat, digits, decimal_obj)
@@ -293,8 +294,8 @@ def degree_to_dms_lonlat(
             - y: float | Decimal
     """
     if isinstance(lon, Iterable):
-        return _degree_to_dms_lonlat_list(lon, lat, digits, decimal_obj)  # type: ignore
-    return _degree_to_dms_lonlat(lon, lat, digits, decimal_obj)  # type: ignore
+        return _degree_to_dms_lonlat_list(lon, lat, digits, decimal_obj)
+    return _degree_to_dms_lonlat(lon, lat, digits, decimal_obj)
 
 
 @type_checker_float(arg_index=0, kward="x")
@@ -334,27 +335,28 @@ def transform_xy(
 @type_checker_crs(arg_index=1, kward="in_crs")
 @type_checker_crs(arg_index=2, kward="out_crs")
 def transform_geometry(
-    geometry: shapely.geometry.base.BaseGeometry,
+    geometry: BaseGeometry,
     in_crs: str | int | pyproj.CRS,
     out_crs: str | int | pyproj.CRS,
-) -> shapely.geometry.base.BaseGeometry:
+) -> BaseGeometry:
     """
     ## Summary:
         指定した座標系から別の座標系にジオメトリを変換する。
     Args:
-        geometry (shapely.geometry.base.BaseGeometry):
+        geometry (BaseGeometry):
             変換するジオメトリ。shapelyのBaseGeometryオブジェクト。
         in_crs (str | int | pyproj.CRS):
             入力座標系。EPSGコードやCRSオブジェクトを指定。
         out_crs (str | int | pyproj.CRS):
             出力座標系。EPSGコードやCRSオブジェクトを指定。
     Returns:
-        shapely.geometry.base.BaseGeometry:
+        BaseGeometry:
             変換後のジオメトリ。shapelyのBaseGeometryオブジェクト。
     """
     transformer = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True)
     try:
-        transformed_geom = shapely.transform(
+        # shapelyのバージョンにより、transformの使い方が異なるため、両方試す
+        transformed_geom = shapely.transform(  # type: ignore
             geometry, transformer.transform, interleaved=False
         )
     except Exception:
@@ -365,6 +367,8 @@ def transform_geometry(
     return transformed_geom
 
 
+@type_checker_float(arg_index=0, kward="lon")
+@type_checker_float(arg_index=1, kward="lat")
 def estimate_utm_crs(lon: float, lat: float, datum_name: str = "JGD2011") -> pyproj.CRS:
     """
     ## Summary:
@@ -392,3 +396,88 @@ def estimate_utm_crs(lon: float, lat: float, datum_name: str = "JGD2011") -> pyp
         datum_name=datum_name, area_of_interest=aoi
     )
     return pyproj.CRS.from_epsg(utm_crs_lst[0].code)
+
+
+@type_checker_shapely(arg_index=0, kward="geometry")
+@type_checker_crs(arg_index=1, kward="in_crs")
+def estimate_utm_crs_from_geometry(
+    geometry: BaseGeometry,
+    in_crs: str | int | pyproj.CRS = "EPSG:4326",
+    datum_name: str = "JGD2011",
+) -> pyproj.CRS:
+    """
+    ## Summary:
+        ジオメトリからUTM座標系を推定する。
+    Args:
+        geometry (BaseGeometry):
+            ジオメトリ。shapelyのBaseGeometryオブジェクト。
+        in_crs (str | int | pyproj.CRS):
+            入力座標系。EPSGコードやCRSオブジェクトを指定。デフォルトは'EPSG:4326'。
+        datum_name(str): 'WGS 84', 'JGD2011' ...  default='JGD2011'
+    Returns:
+        pyproj.CRS: 推定されたUTM座標系のCRSオブジェクト
+    """
+    if in_crs.to_epsg() != 4326:
+        # 入力座標系が経緯度でない場合、変換を行う
+        geometry = transform_geometry(geometry, in_crs, "EPSG:4326")
+    pnt = geometry.centroid
+    return estimate_utm_crs(pnt.x, pnt.y, datum_name)
+
+
+@type_checker_crs(arg_index=1, kward="in_crs")
+@type_checker_crs(arg_index=2, kward="out_crs")
+def get_geometry_center(
+    geometry: BaseGeometry | list[BaseGeometry],
+    in_crs: str | int | pyproj.CRS,
+    out_crs: str | int | pyproj.CRS,
+) -> XY:
+    # ``geometry``の次元数を数えて、問題がなければBBoxの中心を取得する。
+    dim_count = dimensional_count(geometry)
+    if dim_count == 1:
+        geometry = shapely.union_all(geometry).envelope.centroid
+    elif dim_count == 0:
+        geometry = geometry.envelope.centroid
+    else:
+        raise ValueError("geometry must be a single geometry or a list of geometries.")
+    # ``geometry``のCRSが`in_crs`と異なる場合、変換を行う。
+    if in_crs.to_epsg() != out_crs.to_epsg():
+        geometry = transform_geometry(geometry, in_crs, out_crs)
+    return XY(geometry.x, geometry.y)
+
+
+@type_checker_crs(arg_index=1, kward="in_crs")
+@type_checker_crs(arg_index=2, kward="out_crs")
+def get_geometry_scope(
+    geometry: BaseGeometry | list[BaseGeometry],
+    in_crs: str | int | pyproj.CRS,
+    out_crs: str | int | pyproj.CRS,
+) -> Scope:
+    """
+    ## Summary:
+        ジオメトリの範囲（バウンディングボックス）を取得する。
+    Args:
+        geometry (BaseGeometry | list[BaseGeometry]):
+            ジオメトリ。shapelyのBaseGeometryオブジェクトまたはそのリスト。
+        in_crs (str | int | pyproj.CRS):
+            入力座標系。EPSGコードやCRSオブジェクトを指定。
+        out_crs (str | int | pyproj.CRS):
+            出力座標系。EPSGコードやCRSオブジェクトを指定。
+    Returns:
+        Scope(NamedTuple):
+            ジオメトリの範囲を表すScopeオブジェクト。
+            - x_min: float
+            - y_min: float
+            - x_max: float
+            - y_max: float
+    """
+    dim_count = dimensional_count(geometry)
+    if dim_count == 1:
+        geometry = shapely.union_all(geometry).envelope
+    elif dim_count == 0:
+        geometry = geometry.envelope
+    else:
+        raise ValueError("geometry must be a single geometry or a list of geometries.")
+    # ``geometry``のCRSが`in_crs`と異なる場合、変換を行う。
+    if in_crs.to_epsg() != out_crs.to_epsg():
+        geometry = transform_geometry(geometry, in_crs, out_crs)
+    return Scope(*geometry.bounds)

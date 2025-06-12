@@ -1,14 +1,19 @@
 from decimal import Decimal
 
+import pyproj
 import pytest
 import shapely
 
-from chiriin.config import XY
+from chiriin.config import XY, Scope
 from chiriin.geometries import (
     degree_to_dms,
     degree_to_dms_lonlat,
     dms_to_degree,
     dms_to_degree_lonlat,
+    estimate_utm_crs,
+    estimate_utm_crs_from_geometry,
+    get_geometry_center,
+    get_geometry_scope,
     transform_geometry,
     transform_xy,
 )
@@ -155,3 +160,49 @@ def test_transform_geometry(geometry, in_crs, out_crs):
     # Test with invalid CRS
     with pytest.raises(Exception):  # noqa: B017
         transform_geometry(geometry, "invalid_crs", out_crs)
+
+
+def test_estimate_utm_crs():
+    """Test the estimation of UTM CRS from coordinates."""
+    lon, lat = 140.651785472, 40.85253225
+    utm_crs = estimate_utm_crs(lon, lat)
+    assert isinstance(utm_crs, pyproj.CRS)
+    assert utm_crs.axis_info[0].unit_name == "metre", (
+        "Estimated CRS should use metres as the unit."
+    )
+    with pytest.raises(Exception):  # noqa: B017
+        estimate_utm_crs(lon, lat, datum_name="invalid_datum")
+
+
+def test_estimate_utm_crs_from_geometry():
+    """Test the estimation of UTM CRS from a geometry."""
+    geometry = shapely.Point(140.651785472, 40.85253225)
+    utm_crs = estimate_utm_crs_from_geometry(geometry, in_crs="EPSG:4326")
+    assert isinstance(utm_crs, pyproj.CRS)
+    assert utm_crs.axis_info[0].unit_name == "metre", (
+        "Estimated CRS should use metres as the unit."
+    )
+
+
+def test_get_geometry_center():
+    """Test the calculation of the center of a geometry."""
+    geometry = shapely.Point(140.651785472, 40.85253225).buffer(0.1).envelope
+    center = get_geometry_center(geometry, in_crs="EPSG:4326", out_crs="EPSG:3857")
+    assert isinstance(center, XY)
+    center = get_geometry_center([geometry], in_crs="EPSG:4326", out_crs="EPSG:3857")
+    assert isinstance(center, XY)
+    # Test with invalid geometry
+    with pytest.raises(Exception):  # noqa: B017
+        get_geometry_center([[geometry]], in_crs="EPSG:4326", out_crs="EPSG:3857")
+
+
+def test_get_geometry_scope():
+    """Test the calculation of the scope of a geometry."""
+    geometry = shapely.Point(140.651785472, 40.85253225).buffer(0.1).envelope
+    scope = get_geometry_scope(geometry, in_crs="EPSG:4326", out_crs="EPSG:3857")
+    assert isinstance(scope, Scope)
+    scope = get_geometry_scope([geometry], in_crs="EPSG:4326", out_crs="EPSG:3857")
+    assert isinstance(scope, Scope)
+    # Test with invalid geometry
+    with pytest.raises(Exception):  # noqa: B017
+        get_geometry_scope([[geometry]], in_crs="EPSG:4326", out_crs="EPSG:3857")
