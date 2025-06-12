@@ -109,4 +109,10 @@
         },
         "editor.defaultFormatter": "charliermarsh.ruff"
     },
+    "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingModuleSource": false,
+    "reportMissingImports": false,
+    "reportAttributeAccessIssue": false,
+    "reportArgumentType": false,
+}
 }
