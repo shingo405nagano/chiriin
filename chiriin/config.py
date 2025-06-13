@@ -581,3 +581,53 @@ class PaperSize(object):
                 - height (float): 高さ（インチ単位）
         """
         return self._calc_size(self.a3_cm_long, self.a3_cm_short)
+
+
+class Icons(object):
+    """
+    ## Summary:
+        アイコンのパスを管理するクラス。
+        アイコンのパスは、chiriinのアイコンフォルダ内にあるPNGファイルのパスを返す。
+    """
+
+    @staticmethod
+    def get_icon_path(icon_name: str) -> str:
+        """
+        ## Summary:
+            アイコンのパスを取得するメソッド。
+        Args:
+            icon_name (str): アイコンの名前（拡張子なし）
+        Returns:
+            str: アイコンのパス
+        """
+        return os.path.join(os.path.dirname(__file__), "data", "imgs", f"{icon_name}.png")
+
+    @property
+    def true_north(self) -> str:
+        """
+        ## Summary:
+            位置情報アイコンのパスを取得するプロパティ。
+        Returns:
+            str: 位置情報アイコンのパス
+        """
+        return self.get_icon_path("true_north")
+
+    @property
+    def compass(self) -> str:
+        """
+        ## Summary:
+            コンパスアイコンのパスを取得するプロパティ。
+        Returns:
+            str: コンパスアイコンのパス
+        """
+        return self.get_icon_path("compass")
+
+    @property
+    def simple_compass(self) -> str:
+        """
+        ## Summary:
+            方位角アイコンのパスを取得するプロパティ。
+        Returns:
+            str: 方位角アイコンのパス
+        """
+        return self.get_icon_path("simple_compass")
