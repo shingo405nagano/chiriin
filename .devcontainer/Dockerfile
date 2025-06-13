@@ -8,22 +8,5 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade pip\
-    && pip install wheel\
-    && pip install setuptools\
-    && pip install requests\
-    && pip install numpy\
-    && pip install matplotlib\
-    && pip install japanize-matplotlib\
-    && pip install pandas\
-    && pip install shapely\
-    && pip install pyproj\
-    && pip install geopandas\
-    && pip install pydantic\
-    && pip install aiohttp\
-    && pip install pymupdf\
-    && pip install ruff\
-    && pip install pytest\
-    && pip install pytest-cov\
-    && pip install pytest-xdist\
-    && pip install pytest-html
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
