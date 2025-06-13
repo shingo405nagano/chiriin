@@ -53,3 +53,30 @@ def test_map_editor(geometry, in_crs, out_crs, paper_size):
         map_editor = MapEditor(
             [[geometry]], in_crs, "EPSG:6678", paper_size="portrait_a4"
         )
+
+
+def test_x_from_map_editor():
+    """Test the set_lims method of MapEditor."""
+    map_editor = MapEditor(
+        geometry=pnt1,
+        in_crs="EPSG:4326",
+        out_crs="EPSG:6678",
+        paper_size="landscape_a4",
+    )
+    map_scope = map_editor.valid_scales.get(10_000)
+    map_editor.set_lims(
+        x_min=map_scope.x_min,
+        y_min=map_scope.y_min,
+        x_max=map_scope.x_max,
+        y_max=map_scope.y_max,
+    )
+    # map_editor.ax.set_xlim(*map_scope, major_tick=500, major_grid=False, minor_grid=False)
+    map_editor.remove_axis_grid()
+    map_editor.add_icon_of_simple_compass(img_size=2.5)
+    map_editor.add_icon_of_compass(img_size=2.5)
+    map_editor.add_icon_of_true_north(img_size=2.5)
+    map_editor.add_scale_txt(10_000)
+    map_editor.add_basemap(*map_scope, map_name="slope", zl=15)
+    map_editor.set_scope(*map_scope)
+    with pytest.raises(Exception):
+        map_editor.add_basemap(*map_scope, map_name="invalid_map", zl=15)

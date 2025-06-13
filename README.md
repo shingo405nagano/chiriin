@@ -378,19 +378,20 @@ type: <class 'float'>, value: 37.2381
 正しい縮尺を表示する為に、図面の座標系の距離単位は"メートル単位"である必要があります。`out_crs`に引数指定しない場合は、UTM座標系が推定されます。
 
 ```python
-from drawer import MapEditor
-map_editor = MapEditor(
-    geometry=shapely.Point(140.728595, 40.832583),  # 描画したいジオメトリ
-    in_crs="EPSG:4326",  # 入力座標系
-    out_crs="EPSG:6678",  # 出力座標系
-    paper_size="landscape_a4",  # 用紙サイズ
-    describe_crs=True,  # CRSの説明を表示するかどうか
-    # **kwargs:  # その他のオプション
-    left_cm=1.2,  # 左の余白（cm単位）
-    right_cm=1.2,  # 右の余白（cm単位）
-    top_cm=2.0,  # 上の余白（cm単位）
-    bottom_cm=2.5,  # 下の余白（cm単位）
-)
+>>> from drawer import MapEditor
+
+>>> map_editor = MapEditor(
+...     geometry=shapely.Point(140.728595, 40.832583),  # 描画したいジオメトリ
+...     in_crs="EPSG:4326",  # 入力座標系
+...     out_crs="EPSG:6678",  # 出力座標系
+...     paper_size="landscape_a4",  # 用紙サイズ
+...     describe_crs=True,  # CRSの説明を表示するかどうか
+...     # **kwargs:  # その他のオプション
+...     left_cm=1.2,  # 左の余白（cm単位）
+...     right_cm=1.2,  # 右の余白（cm単位）
+...     top_cm=2.0,  # 上の余白（cm単位）
+...     bottom_cm=2.5,  # 下の余白（cm単位）
+... )
 ```
 ### **2-1-2. MapEditorクラスのインスタンス変数**
 **fig(plt.Figure):** `matplotlib`の`Figure`オブジェクト。
@@ -421,20 +422,20 @@ map_editor = MapEditor(
 `valid_scales`は、整数型の縮尺をキーに、`TileScope`オブジェクトを値とする辞書です。`TileScope`オブジェクトは、X軸とY軸の最小値と最大値を持ち、図面の表示範囲を定義するのに使用されます。
 
 ```python
-map_scope = map_eiditor.valid_scales.get(10_000, False)
-if scale:
-    map_editor.set_lims(
-        # *map_scopeで省略可能
-        x_min=map_scope.x_min,  # X軸の最小値
-        y_min=map_scope.y_min,  # Y軸の最小値
-        x_max=map_scope.x_max,  # X軸の最大値
-        y_max=map_scope.y_max,  # Y軸の最大値
-        major_tick=100,  # メジャー目盛りの間隔
-        major_grid=True,  # メジャーグリッドを表示するかどうか
-        minor_grid=False,  # マイナーグリッドを表示するかどうか
-    )
-else:
-    print("指定した縮尺は無効です。")
+>>> map_scope = map_eiditor.valid_scales.get(10_000, False)
+>>> if scale:
+>>>     map_editor.set_lims(
+...         # *map_scopeで省略可能
+...         x_min=map_scope.x_min,  # X軸の最小値
+...         y_min=map_scope.y_min,  # Y軸の最小値
+...         x_max=map_scope.x_max,  # X軸の最大値
+...         y_max=map_scope.y_max,  # Y軸の最大値
+...         major_tick=100,  # メジャー目盛りの間隔
+...         major_grid=True,  # メジャーグリッドを表示するかどうか
+...         minor_grid=False,  # マイナーグリッドを表示するかどうか
+...     )
+>>> else:
+>>>     print("指定した縮尺は無効です。")
 ```
 
 ### **2-3. 方位記号の追加**
@@ -442,9 +443,9 @@ else:
 `MapEditor`クラスには、方位記号を追加するメソッドが用意されています。方位記号は、地図上に北を示すためのアイコンです。
 
 ```python
-map_editor.add_icon_of_true_north(img_size=2.5)
-map_editor.add_icon_of_simple_compass(img_size=2.5)
-map_editor.add_icon_of_compass(img_size=2.5)
+>>> map_editor.add_icon_of_true_north(img_size=2.5)
+>>> map_editor.add_icon_of_simple_compass(img_size=2.5)
+>>> map_editor.add_icon_of_compass(img_size=2.5)
 ```
 <img src="chiriin/data/imgs/true_north.png" width="50">
 <img src="chiriin/data/imgs/simple_compass.png" width="250">
@@ -456,7 +457,7 @@ map_editor.add_icon_of_compass(img_size=2.5)
 `MapEditor`クラスには、縮尺ラベルを追加するメソッドが用意されています。縮尺ラベルは、地図上に現在の縮尺を示すためのテキストです。
 
 ```python
-map_editor.add_scale_txt(10_000)
+>>> map_editor.add_scale_txt(10_000)
 ```
 
 
@@ -472,15 +473,15 @@ map_editor.add_scale_txt(10_000)
  - 傾斜図 [slope] Zoom Level: 3 ~ 15
 
 ```python
-map_editor.add_basemap(
-    # *map_scopeで省略可能
-    x_min=map_scope.x_min,  # X軸の最小値
-    y_min=map_scope.y_min,  # Y軸の最小値
-    x_max=map_scope.x_max,  # X軸の最大値
-    y_max=map_scope.y_max,  # Y軸の最大値
-    map_name="standard",  # ベースマップの種類（standard, pale, photo, slope）
-    zl=15,  # ズームレベル
-)
+>>> map_editor.add_basemap(
+...     # *map_scopeで省略可能
+...     x_min=map_scope.x_min,  # X軸の最小値
+...     y_min=map_scope.y_min,  # Y軸の最小値
+...     x_max=map_scope.x_max,  # X軸の最大値
+...     y_max=map_scope.y_max,  # Y軸の最大値
+...     map_name="standard",  # ベースマップの種類（standard, pale, photo, slope）
+...     zl=15,  # ズームレベル
+... )
 ```
 
 ### **2-6. グリッドの削除**
@@ -488,7 +489,7 @@ map_editor.add_basemap(
 `MapEditor`クラスには、グリッドを削除するメソッドが用意されています。グリッドは、地図上に目盛りを表示するための線ですが、必要ない場合は削除することができます。
 
 ```python
-map_editor.remove_axis_grid()
+>>> map_editor.remove_axis_grid()
 ```
 
 
@@ -497,14 +498,74 @@ map_editor.remove_axis_grid()
 すべての描画が完了したら、`MapEditor`クラスの`set_scope`メソッドを使用して、図面の表示範囲を設定します。このメソッドは一番最後に呼び出す必要があります。このメソッドを呼び出さない場合、図面の縮尺は正しく表示されません。
 
 ```python
-map_editor.set_scope(
-    # *map_scopeで省略可能
-    x_min=map_scope.x_min,  # X軸の最小値
-    y_min=map_scope.y_min,  # Y軸の最小値
-    x_max=map_scope.x_max,  # X軸の最大値
-    y_max=map_scope.y_max,  # Y軸の最大値
-)
+>>> map_editor.set_scope(
+...     # *map_scopeで省略可能
+...     x_min=map_scope.x_min,  # X軸の最小値
+...     y_min=map_scope.y_min,  # Y軸の最小値
+...     x_max=map_scope.x_max,  # X軸の最大値
+...     y_max=map_scope.y_max,  # Y軸の最大値
+... )
 ```
+
+### **2-8. 使用例**
+---
+以下に、`MapEditor`クラスを使用して地図を作成する例を示します。この例では、グリッド、ベースマップ、方位記号、縮尺ラベルを追加し、最終的にPDFとして出力します。
+
+```python
+from matplotlib import pyplot as plt
+
+from drawer import MapEditor
+
+>>> _points = [
+    'POINT (140.4646559837494 40.61244684442613)',
+    'POINT (140.46903949942302 40.611764534075995)',
+    'POINT (140.46801290517573 40.6076019927892)',
+    'POINT (140.468413301053 40.607491863579405)',
+    'POINT (140.46748706507026 40.603271885288194)',
+    'POINT (140.46487253321905 40.603596327499865)',
+    'POINT (140.46469295915807 40.603273240550536)',
+    'POINT (140.46177546360383 40.60372462598491)',
+    'POINT (140.46126285127215 40.604112040547896)',
+    'POINT (140.46110456608216 40.604797511888364)',
+    'POINT (140.46262506479448 40.60677332023964)',
+    'POINT (140.4599798596257 40.60775281754854)',
+]
+>>> points = [shapely.from_wkt(p) for p in _points]
+>>> map_editor = MapEditor(
+...     geometry=points,
+...     in_crs="EPSG:4326",
+...     out_crs="EPSG:6678",
+...     paper_size="landscape_a4",
+...     describe_crs=True,
+... )
+>>> # 縮尺の設定
+>>> scale = 10_000
+>>> map_scope = map_editor.valid_scales.get(scale, False)
+>>> if map_scope:
+...     map_editor.set_lims(
+...         *map_scope,
+...         major_tick=500,
+...         major_grid=False,
+...         minor_grid=False,
+...     )
+>>> else:
+...     print("指定した縮尺は無効です。")
+>>> # Pointの描画
+>>> for i, p in enumerate(map_editor.metre_geometry):
+...     map_editor.ax.scatter(p.x, p.y, marker="o", color="red", s=10, label="Point")
+...     map_editor.ax.text(p.x + 0.0001, p.y + 0.0001, f"P-{i}", fontsize=8, color="red")
+>>> # 方位記号の追加
+>>> map_editor.add_icon_of_simple_compass(img_size=2.5)
+>>> # 縮尺ラベルの追加
+>>> map_editor.add_scale_txt(scale)
+>>> # ベースマップの追加
+>>> map_editor.add_basemap(*map_scope, map_name="pale", zl=18)
+>>> # 範囲の設定
+>>> map_editor.set_scope(*map_scope)
+>>> # PDFとしmap_editor.add_basemap(て保存
+>>> plt.save_pdf("output_map.pdf", dpi=300, format="pdf")
+```
+
 
 #### 例1）グリッドのみ
 ![](chiriin/data/imgs/original_map.png)

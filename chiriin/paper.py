@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from shapely.geometry.base import BaseGeometry
 
-from chiriin.config import FigureSize, PaperSize, Scope, TileUrls
+from chiriin.config import FigureSize, Icons, PaperSize, Scope, TileUrls
 from chiriin.formatter import crs_formatter, type_checker_crs, type_checker_float
 from chiriin.geometries import (
     estimate_utm_crs,
@@ -59,7 +59,7 @@ class MapEditor(PaperSize):
             元のジオメトリ。
         metre_geometry (BaseGeometry | list[BaseGeometry]):
             メートル単位に変換されたジオメトリ。
-        scope (Scope):
+        geom_scope (Scope):
             ジオメトリの範囲を表すScopeオブジェクト。
         valid_scales (dict[int, Scope]):
             投影可能な縮尺とその範囲を表す辞書。keyは縮尺(int)で、値は``Scope``オブジェクト。
@@ -123,7 +123,7 @@ class MapEditor(PaperSize):
         if describe_crs:
             # CRSの種類をマップに記載
             self._describe_crs(
-                self.out_crs, width_cm=1.5, height_cm=1.8, fontsize=7, va="top"
+                self.out_crs, left_cm=1.5, bottom_cm=1.8, fontsize=7, va="top"
             )
 
     def make_sheet(self, size: str = "portrait_a4") -> tuple[plt.Figure, plt.Axes]:
@@ -400,7 +400,7 @@ class MapEditor(PaperSize):
                 which="minor", color="#dcdddd", linestyle="--", linewidth=0.1, zorder=0
             )
 
-    def delete_axis(self) -> None:
+    def remove_axis_grid(self) -> None:
         """
         ## Summary:
             地図の軸を削除する。これにより、地図の表示がよりクリーンになります。
@@ -425,8 +425,8 @@ class MapEditor(PaperSize):
     def add_txt(
         self,  #
         txt: str,
-        width_cm: float = 2.0,
-        height_cm: float = 1.0,
+        left_cm: float = 2.0,
+        bottom_cm: float = 1.0,
         **kwargs,
     ) -> None:
         """
@@ -434,8 +434,8 @@ class MapEditor(PaperSize):
             ``Figure``の指定された位置にテキストを追加する。
         Args:
             txt (str): 追加するテキスト。
-            width_cm (float): 左下からのテキスト位置（センチメートル単位）。
-            height_cm (float): 左下からのテキスト位置（センチメートル単位）。
+            left_cm (float): 左下からのテキスト位置（センチメートル単位）。
+            bottom_cm (float): 左下からのテキスト位置（センチメートル単位）。
             **kwargs:
                 - ha (str): テキストの水平位置（'left', 'center', 'right'）。
                 - va (str): テキストの垂直位置（'bottom', 'center', 'top'）。
@@ -445,8 +445,8 @@ class MapEditor(PaperSize):
         Returns:
             None
         """
-        x = width_cm / 2.54 / self.fig_size.width
-        y = height_cm / 2.54 / self.fig_size.height
+        x = left_cm / 2.54 / self.fig_size.width
+        y = bottom_cm / 2.54 / self.fig_size.height
         options = {
             "ha": kwargs.get("ha", "left"),
             "va": kwargs.get("va", "bottom"),
@@ -466,8 +466,8 @@ class MapEditor(PaperSize):
     def _describe_crs(
         self,  #
         crs: pyproj.CRS,
-        width_cm: float,
-        height_cm: float,
+        left_cm: float,
+        bottom_cm: float,
         **kwargs,
     ) -> None:
         """
@@ -475,8 +475,8 @@ class MapEditor(PaperSize):
             CRSの情報をFigureに追加する。
         Args:
             crs (pyproj.CRS): CRSオブジェクト。
-            width_cm (float): テキストの幅（センチメートル単位）。
-            height_cm (float): テキストの高さ（センチメートル単位）。
+            left_cm (float): テキストの幅（センチメートル単位）。
+            bottom_cm (float): テキストの高さ（センチメートル単位）。
             kwargs:
                 - ha (str): テキストの水平位置（'left', 'center', 'right'）。
                 - va (str): テキストの垂直位置（'bottom', 'center', 'top'）。
@@ -486,12 +486,39 @@ class MapEditor(PaperSize):
         Returns:
             None
         """
-        txt = f"座標参照系  -> {crs.name}\n"
-        txt += f"EPSGコード -> {crs.to_epsg()}\n"
+        txt = f"座標参照系      {crs.name}\n"
+        txt += f"EPSGコード   {crs.to_epsg()}\n"
         scope = Scope(*[round(v, 3) for v in self.geom_scope])
-        txt += f"表示範囲   -> x min: {scope.x_min},  y min: {scope.y_min},  "
+        txt += f"表示範囲         x min: {scope.x_min},  y min: {scope.y_min},  "
         txt += f"x max: {scope.x_max},  y max: {scope.y_max}"
-        self.add_txt(txt, width_cm, height_cm, **kwargs)
+        self.add_txt(txt, left_cm, bottom_cm, **kwargs)
+
+    def add_scale_txt(
+        self, scale: int, left_cm: float = 1.5, bottom_cm: float = 0.7, **kwargs
+    ) -> None:
+        """
+        ## Summary:
+            地図の縮尺をFigureに追加する。
+        Args:
+            scale (int): 縮尺の値。例えば、1000は1:1000を意味します。
+            left_cm (float): テキストの左下からの位置（センチメートル単位）。
+            bottom_cm (float): テキストの左下からの位置（センチメートル単位）。
+            **kwargs:
+                - fontsize (int): テキストのフォントサイズ（デフォルトは7）。
+                - va (str): テキストの垂直位置（'bottom', 'center', 'top'）。
+                - bbox (dict): テキストの背景ボックスの設定。
+                               dict(facecolor="none", edgecolor="none", pad=0))
+        Returns:
+            None
+        """
+        self.add_txt(
+            txt=f"縮尺                1:{scale}",
+            left_cm=left_cm,
+            bottom_cm=bottom_cm,
+            fontsize=kwargs.get("fontsize", 7),
+            va=kwargs.get("va", "bottom"),
+            bbox=kwargs.get("bbox", dict(facecolor="none", edgecolor="none", pad=0)),
+        )
 
     def add_basemap(
         self,  #
@@ -564,11 +591,86 @@ class MapEditor(PaperSize):
                 ),
             )
         self.add_txt(
-            data["source"] + f"  Zoom Level: {zl}",
-            width_cm=self._left_cm + 0.3,
-            height_cm=self._bottom_cm + 0.3,
+            data["source"] + f"  zl: {zl}",
+            left_cm=self._left_cm + 0.3,
+            bottom_cm=self._bottom_cm + 0.3,
             fontsize=8,
             va="bottom",
             bbox=dict(facecolor="none", edgecolor="none", pad=0),
             url="https://maps.gsi.go.jp/development/ichiran.html",
+        )
+
+    def add_icon(
+        self,
+        img_path: str,
+        img_size: float,
+        left_cm: float,
+        bottom_cm: float,
+    ) -> None:
+        """
+        ## Summary:
+            地図上にアイコンを追加する。
+        Args:
+            img_path (str):
+                アイコンの画像ファイルのパス。
+            img_size (float):
+                アイコンのサイズ（センチメートル単位）。
+            left_cm (float):
+                アイコンの左下の位置（センチメートル単位）。
+            bottom_cm (float):
+                アイコンの左下の位置（センチメートル単位）。
+        Returns:
+            None
+        """
+        icon = plt.imread(img_path)
+        icon_size = img_size / 2.54  # センチメートルからインチに変換
+        fig_width, fig_height = self.fig.get_size_inches()
+        left = left_cm / 2.54 / fig_width
+        bottom = bottom_cm / 2.54 / fig_height
+        ax_width = icon_size / fig_width
+        ax_height = icon_size / fig_height
+        ax_img = self.fig.add_axes([left, bottom, ax_width, ax_height])
+        ax_img.imshow(icon)
+        ax_img.axis("off")
+
+    def add_icon_of_true_north(self, img_size: float = 1.5) -> None:
+        """
+        ## Summary:
+            地図上にTrue Northのアイコンを追加する。
+        Returns:
+            None
+        """
+        self.add_icon(
+            img_path=Icons().true_north,
+            img_size=img_size,
+            left_cm=self._left_cm + self.map_width - img_size - 0.2,
+            bottom_cm=self._bottom_cm + self.map_height - img_size - 0.7,
+        )
+
+    def add_icon_of_compass(self, img_size: float = 1.5) -> None:
+        """
+        ## Summary:
+            地図上にコンパスのアイコンを追加する。
+        Returns:
+            None
+        """
+        self.add_icon(
+            img_path=Icons().compass,
+            img_size=img_size,
+            left_cm=self._left_cm + self.map_width - img_size - 0.7,
+            bottom_cm=self._bottom_cm + self.map_height - img_size - 0.7,
+        )
+
+    def add_icon_of_simple_compass(self, img_size: float = 1.5) -> None:
+        """
+        ## Summary:
+            地図上にシンプルなコンパスのアイコンを追加する。
+        Returns:
+            None
+        """
+        self.add_icon(
+            img_path=Icons().simple_compass,
+            img_size=img_size,
+            left_cm=self._left_cm + self.map_width - img_size - 0.7,
+            bottom_cm=self._bottom_cm + self.map_height - img_size - 0.7,
         )

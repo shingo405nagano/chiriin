@@ -304,7 +304,6 @@ class _ChiriinDrawer(object):
         """
         ## Summary:
             指定した座標とズームレベルに対応する標高タイルの情報を取得します。
-            座標は経緯度（EPSG:4326）として解釈されます。
         Args:
             x (float):
                 タイルのx座標
@@ -315,7 +314,7 @@ class _ChiriinDrawer(object):
                 - dem10b: 1 ~ 14 の範囲にある整数。
                 - dem5a, dem5b: 1 ~ 15 の範囲にある整数。
             in_crs (str | int):
-                入力座標系を指定するオプションの引数。指定しない場合は、経緯度（EPSG:4326）として解釈されます。
+                入力座標系を指定するオプションの引数。
             elev_type (str):
                 タイルの種類を指定する文字列。デフォルトは'dem10b'（10mメッシュ標高タイル）。
                 他には 'dem5a'や'dem5b'（5mメッシュ標高タイル）などがあります。
@@ -378,7 +377,6 @@ class _ChiriinDrawer(object):
         """
         ## Summary:
             指定したジオメトリとズームレベルに対応する標高タイルの情報を取得します。
-            ジオメトリは経緯度（EPSG:4326）として解釈されます。
         Args:
             geometry (shapely.geometry.base.BaseGeometry):
                 タイルを検索するためのジオメトリ。
@@ -389,7 +387,7 @@ class _ChiriinDrawer(object):
                 - dem10b: 1 ~ 14 の範囲にある整数。
                 - dem5a, dem5b: 1 ~ 15 の範囲にある整数。
             in_crs (str | int):
-                入力座標系を指定するオプションの引数。指定しない場合は、経緯度（EPSG:4326）として解釈されます。
+                入力座標系を指定するオプションの引数。
             elev_type (str):
                 タイルの種類を指定する文字列。デフォルトは'dem10b'（10mメッシュ標高タイル）。
                 他には 'dem5a'や'dem5b'（5mメッシュ標高タイル）などがあります。
@@ -648,7 +646,6 @@ class _ChiriinDrawer(object):
         """
         ## Summary:
             指定した座標とズームレベルに対応する画像タイルの情報を取得します。
-            座標は経緯度（EPSG:4326）として解釈されます。
         Args:
             x (float):
                 タイルのx座標（経度）
@@ -722,7 +719,6 @@ class _ChiriinDrawer(object):
         """
         ## Summary:
             指定したジオメトリとズームレベルに対応する画像タイルの情報を取得します。
-            ジオメトリは経緯度（EPSG:4326）として解釈されます。
         Args:
             geometry (shapely.geometry.base.BaseGeometry):
                 タイルを検索するためのジオメトリ。
@@ -731,7 +727,7 @@ class _ChiriinDrawer(object):
             zoom_level (int):
                 ズームレベルを指定する整数値。
             in_crs (str | int):
-                入力座標系を指定するオプションの引数。指定しない場合は、経緯度（EPSG:4326）として解釈されます。
+                入力座標系を指定するオプションの引数。
             image_type (str):
                 タイルの種類を指定する文字列。デフォルトは'standard'（標準地図タイル）。
                 他には 'photo'や'slope'（空中写真タイル、傾斜タイル）などがあります。

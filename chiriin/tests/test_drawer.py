@@ -150,7 +150,7 @@ def test_fetch_elevation_from_chiriin_drawer():
     """Test the fetch_elevation function."""
     x = 140.769399
     y = 39.769496
-    res = chiriin_drawer.fetch_elevation(x, y)
+    res = chiriin_drawer.fetch_elevation(x, y, in_crs="EPSG:4326")
     assert isinstance(res, float)
     xs = [140.769399, 140.769500]
     ys = [39.769496, 39.769600]
