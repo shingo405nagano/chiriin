@@ -19,7 +19,7 @@ from chiriin.geometries import (
     transform_geometry,
 )
 from chiriin.utils import dimensional_count
-from drawer import chiriin_drawer
+from _drawer import chiriin_drawer
 
 paper_size = PaperSize()
 

@@ -7,7 +7,7 @@ import shapely
 from chiriin.config import XY, XYZ, RelativePosition, TileData, TileScope
 from chiriin.geometries import transform_xy
 from chiriin.mesh import MeshCode
-from drawer import chiriin_drawer
+from _drawer import chiriin_drawer
 
 
 @pytest.mark.parametrize(
