@@ -19,8 +19,9 @@ from chiriin.geometries import (
     transform_geometry,
 )
 from chiriin.utils import dimensional_count
-from _drawer import chiriin_drawer
+from _drawer import _ChiriinDrawer
 
+chiriin_drawer = _ChiriinDrawer()
 paper_size = PaperSize()
 
 
