@@ -11,15 +11,16 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from shapely.geometry.base import BaseGeometry
 
+from _drawer import _ChiriinDrawer
 from chiriin.config import FigureSize, Icons, PaperSize, Scope, TileUrls
 from chiriin.formatter import crs_formatter, type_checker_crs, type_checker_float
 from chiriin.geometries import (
     estimate_utm_crs,
+    get_coordinates_from,  # noqa: F401, F821
     get_geometry_center,
     transform_geometry,
 )
 from chiriin.utils import dimensional_count
-from _drawer import _ChiriinDrawer
 
 chiriin_drawer = _ChiriinDrawer()
 paper_size = PaperSize()
@@ -356,6 +357,7 @@ class MapEditor(PaperSize):
         major_tick: int = 500,
         major_grid: bool = True,
         minor_grid: bool = True,
+        mag: bool = True,
     ) -> None:
         """
         ## Summary:
@@ -367,6 +369,10 @@ class MapEditor(PaperSize):
             x_max (float): X軸の最大値。
             y_min (float): Y軸の最小値。
             y_max (float): Y軸の最大値。
+            major_tick (int): 目盛りの間隔（デフォルトは500メートル）。
+            major_grid (bool): Trueの場合、主要なグリッド線を表示する（デフォルトはTrue）。
+            minor_grid (bool): Trueの場合、補助的なグリッド線を表示する（デフォルトはTrue）。
+            mag (bool): Trueの場合、グリッドを真北ではなく、磁北に合わせる。
         Returns:
             None
         """
@@ -383,6 +389,128 @@ class MapEditor(PaperSize):
             label.set_verticalalignment("bottom")
             label.set_rotation(90)
             label.set_fontsize(5)
+        if mag:
+            # 磁北に合わせたグリッドを設定
+            self._set_mag_grid(
+                x_min,
+                y_min,
+                x_max,
+                y_max,
+                major_tick=major_tick,
+                minor_grid=minor_grid,
+            )
+        else:
+            # 真北に合わせたグリッドを設定
+            self._set_true_north_grid(major_grid, minor_grid)
+
+    def _set_mag_grid(
+        self,  #
+        x_min: float,
+        y_min: float,
+        x_max: float,
+        y_max: float,
+        major_tick: int,
+        minor_grid: bool,
+    ) -> None:
+        center = shapely.box(x_min, y_min, x_max, y_max).centroid
+        if self.out_crs.to_epsg() != 4326:
+            center = transform_geometry(center, self.out_crs, "EPSG:4326")
+        x, y = center.x, center.y
+        theta_deg = 360 - chiriin_drawer.magnetic_declination(x, y)
+        add = major_tick * 2
+        scope = (x_min - add, y_min - add, x_max + add, y_max + add)
+        # self._set_mag_minor_grid(*scope, major_tick=major_tick, theta_deg=theta_deg)
+        self._set_mag_major_grid(*scope, major_tick=major_tick, theta_deg=theta_deg)
+
+    def _set_mag_major_grid(
+        self,
+        x_min: float,
+        y_min: float,
+        x_max: float,
+        y_max: float,
+        major_tick: float,
+        theta_deg: float,
+        line_style: str = "-",
+        line_width: float = 0.5,
+        color: str = "#949495",
+    ):
+        """ """
+        x_tick_labels = np.arange(x_min, x_max + major_tick * 2, major_tick)
+        x_delta = (x_max - x_min) * 2
+        x_pnts = [shapely.Point(x, y_min) for x in x_tick_labels]
+        y_tick_labels = np.arange(y_min, y_max + major_tick * 2, major_tick)
+        y_delta = (y_max - y_min) * 2
+        y_pnts = [shapely.Point(x_min, y) for y in y_tick_labels]
+        # 北側の新たな点を計算
+        x_new_pnts = [get_coordinates_from(pnt, theta_deg, y_delta) for pnt in x_pnts]
+        # 東側の新たな点を計算
+        y_new_pnts = [
+            get_coordinates_from(pnt, theta_deg + 90, x_delta) for pnt in y_pnts
+        ]
+        for x_pnt, y_pnt, x_new_pnt, y_new_pnt in zip(
+            x_pnts, y_pnts, x_new_pnts, y_new_pnts, strict=False
+        ):
+            # X軸の目盛り線を描画
+            plt.plot(
+                [x_pnt.x, x_new_pnt.x],
+                [x_pnt.y, x_new_pnt.y],
+                color=color,
+                linestyle=line_style,
+                linewidth=line_width,
+                zorder=0,
+            )
+            # Y軸の目盛り線を描画
+            plt.plot(
+                [y_pnt.x, y_new_pnt.x],
+                [y_pnt.y, y_new_pnt.y],
+                color=color,
+                linestyle=line_style,
+                linewidth=line_width,
+                zorder=0,
+            )
+
+    def _set_mag_minor_grid(
+        self,
+        x_min: float,
+        y_min: float,
+        x_max: float,
+        y_max: float,
+        major_tick: float,
+        theta_deg: float,
+        line_style: str = "--",
+        line_width: float = 0.1,
+        color: str = "#dcdddd",
+    ) -> None:
+        """
+        ## Summary:
+            磁北に合わせて補助的なグリッド線を設定する。
+        Returns:
+            None
+        """
+        x_max += major_tick
+        y_max += major_tick
+        self._set_mag_major_grid(
+            x_min=x_min,
+            y_min=y_min,
+            x_max=x_max,
+            y_max=y_max,
+            major_tick=major_tick / 5,
+            theta_deg=theta_deg,
+            line_style=line_style,
+            line_width=line_width,
+            color=color,
+        )
+
+    def _set_true_north_grid(self, major_grid: bool, minor_grid: bool) -> None:
+        """
+        ## Summary:
+            真北に合わせて地図のグリッドを設定する。
+        Args:
+            major_grid (bool): Trueの場合、主要なグリッド線を表示する（デフォルトはTrue）。
+            minor_grid (bool): Trueの場合、補助的なグリッド線を表示する（デフォルトはTrue）。
+        Returns:
+            None
+        """
         # 指数表記を無効化
         xfmt = ScalarFormatter(useOffset=False, useMathText=False)
         xfmt.set_scientific(False)
