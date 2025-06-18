@@ -419,6 +419,7 @@ class MapEditor(PaperSize):
         theta_deg = 360 - chiriin_drawer.magnetic_declination(x, y)
         add = major_tick * 2
         scope = (x_min - add, y_min - add, x_max + add, y_max + add)
+        # 磁北のグリッドは、起点からXY方向に延びるベースラインを計算しなおす。
         # self._set_mag_minor_grid(*scope, major_tick=major_tick, theta_deg=theta_deg)
         self._set_mag_major_grid(*scope, major_tick=major_tick, theta_deg=theta_deg)
 
