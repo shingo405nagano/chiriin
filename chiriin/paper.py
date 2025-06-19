@@ -389,7 +389,7 @@ class MapEditor(PaperSize):
             label.set_verticalalignment("bottom")
             label.set_rotation(90)
             label.set_fontsize(5)
-        if mag:
+        if (mag == True) and (major_grid == True):
             # 磁北に合わせたグリッドを設定
             self._set_mag_grid(
                 x_min,
@@ -419,9 +419,17 @@ class MapEditor(PaperSize):
         theta_deg = 360 - chiriin_drawer.magnetic_declination(x, y)
         add = major_tick * 2
         scope = (x_min - add, y_min - add, x_max + add, y_max + add)
-        # 磁北のグリッドは、起点からXY方向に延びるベースラインを計算しなおす。
-        # self._set_mag_minor_grid(*scope, major_tick=major_tick, theta_deg=theta_deg)
+        if minor_grid:
+            self._set_mag_minor_grid(*scope, major_tick=major_tick, theta_deg=theta_deg)
         self._set_mag_major_grid(*scope, major_tick=major_tick, theta_deg=theta_deg)
+        self.add_txt(
+            f"地磁気 偏角    {round(360 - theta_deg, 2)}°",
+            left_cm=1.5,
+            bottom_cm=0.7,
+            fontsize=7,
+            va="bottom",
+            bbox=dict(facecolor="none", edgecolor="none", pad=0),
+        )
 
     def _set_mag_major_grid(
         self,
@@ -436,21 +444,31 @@ class MapEditor(PaperSize):
         color: str = "#949495",
     ):
         """ """
-        x_tick_labels = np.arange(x_min, x_max + major_tick * 2, major_tick)
+        # X方向のベースラインを計算
+        x_base_pnts = [shapely.Point(x_min, y_min)]
+        while x_base_pnts[-1].x < x_max + major_tick * 2:
+            new_x_pnt = get_coordinates_from(
+                x_base_pnts[-1], theta_deg + 90 - 360, major_tick
+            )
+            x_base_pnts.append(new_x_pnt)
+        # Y方向のベースラインを計算
+        y_base_pnts = [shapely.Point(x_min, y_min)]
+        while y_base_pnts[-1].y < y_max + major_tick * 2:
+            new_y_pnt = get_coordinates_from(y_base_pnts[-1], theta_deg, major_tick)
+            y_base_pnts.append(new_y_pnt)
+        # X軸とY軸の目盛り線をどこまで引くかを計算
         x_delta = (x_max - x_min) * 2
-        x_pnts = [shapely.Point(x, y_min) for x in x_tick_labels]
-        y_tick_labels = np.arange(y_min, y_max + major_tick * 2, major_tick)
         y_delta = (y_max - y_min) * 2
-        y_pnts = [shapely.Point(x_min, y) for y in y_tick_labels]
         # 北側の新たな点を計算
-        x_new_pnts = [get_coordinates_from(pnt, theta_deg, y_delta) for pnt in x_pnts]
+        x_new_pnts = [
+            get_coordinates_from(pnt, theta_deg, y_delta) for pnt in x_base_pnts
+        ]
         # 東側の新たな点を計算
         y_new_pnts = [
-            get_coordinates_from(pnt, theta_deg + 90, x_delta) for pnt in y_pnts
+            get_coordinates_from(pnt, theta_deg + 90, x_delta) for pnt in y_base_pnts
         ]
-        for x_pnt, y_pnt, x_new_pnt, y_new_pnt in zip(
-            x_pnts, y_pnts, x_new_pnts, y_new_pnts, strict=False
-        ):
+        zipper = zip(x_base_pnts, y_base_pnts, x_new_pnts, y_new_pnts, strict=False)
+        for x_pnt, y_pnt, x_new_pnt, y_new_pnt in zipper:
             # X軸の目盛り線を描画
             plt.plot(
                 [x_pnt.x, x_new_pnt.x],
@@ -616,15 +634,14 @@ class MapEditor(PaperSize):
         Returns:
             None
         """
-        txt = f"座標参照系      {crs.name}\n"
-        txt += f"EPSGコード   {crs.to_epsg()}\n"
+        txt = f"座標参照系     {crs.name}  |  EPSG: {crs.to_epsg()}\n"
         scope = Scope(*[round(v, 3) for v in self.geom_scope])
         txt += f"表示範囲         x min: {scope.x_min},  y min: {scope.y_min},  "
         txt += f"x max: {scope.x_max},  y max: {scope.y_max}"
         self.add_txt(txt, left_cm, bottom_cm, **kwargs)
 
     def add_scale_txt(
-        self, scale: int, left_cm: float = 1.5, bottom_cm: float = 0.7, **kwargs
+        self, scale: int, left_cm: float = 1.5, bottom_cm: float = 0.98, **kwargs
     ) -> None:
         """
         ## Summary:
@@ -804,3 +821,27 @@ class MapEditor(PaperSize):
             left_cm=self._left_cm + self.map_width - img_size - 0.7,
             bottom_cm=self._bottom_cm + self.map_height - img_size - 0.7,
         )
+
+
+"""
+## Summary:
+    地図を作成するためのクラス。matplotlibを使用して、指定されたジオメトリの範囲を
+    表示する地図を作成します。地図のサイズ、余白、縮尺、グリッド線などを設定できます。
+    また、地図上にアイコンやテキストを追加することも可能です。
+    このクラスは、地図の投影、縮尺の計算、ジオメトリの変換などを行います。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
