@@ -358,6 +358,7 @@ class MapEditor(PaperSize):
         major_grid: bool = True,
         minor_grid: bool = True,
         mag: bool = True,
+        **kwargs,
     ) -> None:
         """
         ## Summary:
@@ -440,7 +441,7 @@ class MapEditor(PaperSize):
         major_tick: float,
         theta_deg: float,
         line_style: str = "-",
-        line_width: float = 0.5,
+        line_width: float = 0.35,
         color: str = "#949495",
     ):
         """ """
@@ -540,7 +541,7 @@ class MapEditor(PaperSize):
         # Gridの設定
         if major_grid:
             self.ax.grid(
-                which="major", color="#949495", linestyle="-", linewidth=0.5, zorder=0
+                which="major", color="#949495", linestyle="-", linewidth=0.35, zorder=0
             )
         if minor_grid:
             self.ax.minorticks_on()
