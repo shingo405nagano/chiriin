@@ -441,8 +441,8 @@ class MapEditor(PaperSize):
         major_tick: float,
         theta_deg: float,
         line_style: str = "-",
-        line_width: float = 0.35,
-        color: str = "#949495",
+        line_width: float = 0.4,
+        color: str = "#a3a3a2",
     ):
         """ """
         # X方向のベースラインを計算
@@ -498,8 +498,8 @@ class MapEditor(PaperSize):
         major_tick: float,
         theta_deg: float,
         line_style: str = "--",
-        line_width: float = 0.1,
-        color: str = "#dcdddd",
+        line_width: float = 0.15,
+        color: str = "#a3a3a2",
     ) -> None:
         """
         ## Summary:
@@ -712,6 +712,10 @@ class MapEditor(PaperSize):
                 "func": chiriin_drawer.fetch_img_tile_geometry_with_slope_map,
                 "source": source,
             },
+            "micro_topo_miyagi": {
+                "func": chiriin_drawer.fetch_img_tile_geometry_with_miyagi_micro_topo,
+                "source": source,
+            },
         }.get(map_name.lower(), None)
         if data is None:
             raise ValueError(
@@ -729,15 +733,22 @@ class MapEditor(PaperSize):
                 out_crs=self.out_crs,
             )
             trg_scope = Scope(*trg_bbox.bounds)
-            self.ax.imshow(
-                tile_data.ary,
-                extent=(
-                    trg_scope.x_min,
-                    trg_scope.x_max,
-                    trg_scope.y_min,
-                    trg_scope.y_max,
-                ),
-            )
+            try:
+                self.ax.imshow(
+                    tile_data.ary,
+                    extent=(
+                        trg_scope.x_min,
+                        trg_scope.x_max,
+                        trg_scope.y_min,
+                        trg_scope.y_max,
+                    ),
+                )
+            except Exception as e:
+                print(
+                    f"Error occurred while adding tile: {e}\n"
+                    f"Tile: z={tile_data.zoom_level}, x={tile_data.x_idx}, "
+                    f"y={tile_data.y_idx}"
+                )
         self.add_txt(
             data["source"] + f"  zl: {zl}",
             left_cm=self._left_cm + 0.3,

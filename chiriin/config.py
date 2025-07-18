@@ -474,6 +474,16 @@ class TileUrls(object):
         """
         return "https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga"
 
+    @property
+    def micro_topo_miyagi(self):
+        """
+        ## Summary:
+            G空間センターで公開されている、宮城県の微地形図タイル。
+            https://www.geospatial.jp/ckan/dataset/rinya-miyagi-maptiles
+            出典：宮城県・微地形表現図マップタイル（林野庁加工）
+        """
+        return "https://forestgeo.info/opendata/4_miyagi/topography_2023/{z}/{x}/{y}.webp"
+
 
 class FigureSize(NamedTuple):
     """

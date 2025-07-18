@@ -757,6 +757,7 @@ class _ChiriinDrawer(object):
             "photo": tile_urls.photo_map,
             "slope": tile_urls.slope_map,
             "google_satellite": tile_urls.google_satellite,
+            "micro_topo_miyagi": tile_urls.micro_topo_miyagi,
         }.get(image_type, tile_urls.standard_map)
         self._check_img_zl(image_type, zoom_level)
         # geometryをカバーするタイル情報を取得
@@ -1017,7 +1018,22 @@ class _ChiriinDrawer(object):
             in_crs=in_crs,
             image_type="google_satellite",
             **kwargs,
-        )
+        )  # type: ignore
+
+    def fetch_img_tile_geometry_with_miyagi_micro_topo(
+        self,
+        geometry: shapely.geometry.base.BaseGeometry,
+        zoom_level: int,
+        in_crs: str | int | pyproj.CRS,
+        **kwargs,
+    ) -> list[TileData]:
+        return self.fetch_img_tile_geometry(
+            geometry=geometry,
+            zoom_level=zoom_level,
+            in_crs=in_crs,
+            image_type="micro_topo_miyagi",
+            **kwargs,
+        )  # type: ignore
 
     def _check_img_zl(self, img_type: str, zoom_level: int) -> bool:
         """
@@ -1053,6 +1069,13 @@ class _ChiriinDrawer(object):
             else:
                 raise ValueError(
                     "Slope map tiles are only available for zoom levels 5 to 18."
+                )
+        elif img_type in ["micro_topo_miyagi"]:
+            if 2 <= zoom_level <= 18:
+                return True
+            else:
+                raise ValueError(
+                    "Micro topographic map tiles are only available for zoom levels 2 to 18."
                 )
         else:
             raise ValueError(
