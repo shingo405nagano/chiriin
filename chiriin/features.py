@@ -2,7 +2,7 @@ import numpy as np
 import pyproj
 import shapely
 
-from drawer import chiriin_drawer
+from chiriin.drawer import chiriin_drawer
 
 
 def calc_slope(dtm: np.ndarray, x_resol: float, y_resol: float) -> np.ndarray:
