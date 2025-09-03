@@ -5,15 +5,15 @@ from typing import Iterable, Optional, Union
 import numpy as np
 import pandas as pd
 
-from chiriin.config import XY, XYZ, Delta, MeshDesign, semidynamic_correction_file
-from chiriin.formatter import (
+from .config import XY, XYZ, Delta, MeshDesign, semidynamic_correction_file
+from .formatter import (
     datetime_formatter,
     iterable_decimalize_formatter,
     type_checker_decimal,
 )
-from chiriin.mesh import MeshCode
-from chiriin.utils import dimensional_count
-from chiriin.web import fetch_corrected_semidynamic_from_web
+from .mesh import MeshCode
+from .utils import dimensional_count
+from .web import fetch_corrected_semidynamic_from_web
 
 
 class SemiDynamic(object):

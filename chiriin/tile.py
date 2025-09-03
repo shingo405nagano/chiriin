@@ -6,15 +6,15 @@ import pyproj
 import requests
 import shapely
 
-from chiriin.config import XY, TileInfo, TileScope
-from chiriin.formatter import (
+from .config import XY, TileInfo, TileScope
+from .formatter import (
     type_checker_crs,
     type_checker_float,
     type_checker_integer,
     type_checker_shapely,
     type_checker_zoom_level,
 )
-from chiriin.geometries import transform_geometry, transform_xy
+from .geometries import transform_geometry, transform_xy
 
 
 def download_tile_array(url: str) -> np.ndarray:

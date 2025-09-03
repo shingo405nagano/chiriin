@@ -12,9 +12,9 @@ import pyproj
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from chiriin.config import XY, Scope
-from chiriin.formatter import type_checker_crs, type_checker_float, type_checker_shapely
-from chiriin.utils import dimensional_count
+from .config import XY, Scope
+from .formatter import type_checker_crs, type_checker_float, type_checker_shapely
+from .utils import dimensional_count
 
 
 def dms_to_degree(

@@ -5,7 +5,7 @@ from typing import Any, Iterable
 import pyproj
 import shapely
 
-from chiriin.utils import dimensional_count
+from .utils import dimensional_count
 
 DEM_TYPES = ["dem10b", "dem5a", "dem5b"]
 IMG_TYPES = ["standard", "photo", "slope", "google_satellite"]
@@ -495,7 +495,7 @@ def float_formatter(value: int | float | str) -> float:
         float:
             フォーマットされた浮動小数点数。
     """
-    return value
+    return value  # type: ignore
 
 
 @type_checker_integer(arg_index=0, kward="value")
@@ -512,7 +512,7 @@ def integer_formatter(value: int | float | str) -> int:
         int:
             フォーマットされた整数。
     """
-    return value
+    return value  # type: ignore
 
 
 def iterable_float_formatter(values: Iterable) -> list[float]:

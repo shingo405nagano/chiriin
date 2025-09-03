@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pyproj
 
-from chiriin.formatter import datetime_formatter
+from .formatter import datetime_formatter
 
 # 地磁気値（偏角）のデータを読み込み辞書型に変換。辞書のキーは整数型の第二次メッシュコード
 _mag_df = pd.read_csv(

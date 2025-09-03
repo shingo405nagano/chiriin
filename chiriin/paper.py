@@ -11,16 +11,16 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 from shapely.geometry.base import BaseGeometry
 
-from _drawer import _ChiriinDrawer
-from chiriin.config import FigureSize, Icons, PaperSize, Scope, TileUrls
-from chiriin.formatter import crs_formatter, type_checker_crs, type_checker_float
-from chiriin.geometries import (
+from ._drawer import _ChiriinDrawer
+from .config import FigureSize, Icons, PaperSize, Scope, TileUrls
+from .formatter import crs_formatter, type_checker_crs, type_checker_float
+from .geometries import (
     estimate_utm_crs,
     get_coordinates_from,  # noqa: F401, F821
     get_geometry_center,
     transform_geometry,
 )
-from chiriin.utils import dimensional_count
+from .utils import dimensional_count
 
 chiriin_drawer = _ChiriinDrawer()
 paper_size = PaperSize()

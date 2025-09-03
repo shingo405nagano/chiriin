@@ -10,8 +10,8 @@ import numpy as np
 from PIL import Image
 from pydantic import ValidationError
 
-from chiriin.config import XYZ, ChiriinWebApi
-from chiriin.formatter import iterable_float_formatter, type_checker_iterable
+from .config import XYZ, ChiriinWebApi
+from .formatter import iterable_float_formatter, type_checker_iterable
 
 chiriin_web_api = ChiriinWebApi()
 

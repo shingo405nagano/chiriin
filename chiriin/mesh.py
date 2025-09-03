@@ -1,7 +1,7 @@
 import math
 
-from chiriin.formatter import type_checker_float
-from chiriin.geometries import dms_to_degree_lonlat
+from .formatter import type_checker_float
+from .geometries import dms_to_degree_lonlat
 
 
 class MeshCode(object):
@@ -11,8 +11,8 @@ class MeshCode(object):
         if is_dms:
             # 経緯度がDMS形式の場合、度分秒を度に変換
             xy = dms_to_degree_lonlat(lon, lat)
-            lon = xy.x
-            lat = xy.y
+            lon = xy.x  # type: ignore
+            lat = xy.y  # type: ignore
 
         mesh = self._mesh_code(lon, lat)
         self.first_mesh_code: str = mesh["first_mesh_code"]
