@@ -17,8 +17,8 @@ import numpy as np
 import pyproj
 import shapely.geometry
 
-from chiriin.config import XY, XYZ, RelativePosition, TileData, TileUrls
-from chiriin.formatter import (
+from .config import XY, XYZ, RelativePosition, TileData, TileUrls
+from .formatter import (
     type_checker_crs,
     type_checker_elev_type,
     type_checker_img_type,
